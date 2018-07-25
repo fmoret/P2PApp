@@ -1,25 +1,26 @@
 @echo off
-echo Do you want to update repository? (y/n) 
+echo Do you want to update the virtual environment? (y/n) 
 set INPUT=
 set /P INPUT=%=%
 
 if %INPUT%==n goto packQ
 
-cd C:\Program Files\TortoiseSVN\bin\
-START /wait TortoiseProc.exe /command:update /path:"C:\SISMA\" /closeonend:0
+call conda env update -f .\env\AppEnv.yml
+goto packQ
 
 :packQ
 
-echo Do you want to update the packages? (y/n) 
+call activate AppEnv
+start /wait "" http://127.0.0.1:8050/
+call python P2PMarket_App.py
+
+
+
+echo Press "s" to stop...
 set INPUT2=
 set /P INPUT2=%=%
 
-if %INPUT2%==n goto launch
+if %INPUT2%!=s goto closeApp
 
-conda env update -f C:\SISMA\trunk\envs\sismaEnv.yml
-goto launch
-
-:launch
-	cd C:\Users
-	call activate sisma
-	spyder
+:closeApp
+echo ...closing...
