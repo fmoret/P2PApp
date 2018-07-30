@@ -19,6 +19,7 @@ SimTab = SimulationTabApp(Market)
 MarketTab = MarketTabApp(Market)
 
 #import datetime
+#import json
 #import pandas_datareader.data as web
 #import plotly
 #import random
@@ -62,21 +63,21 @@ def voidfct_GeneralTab(tab_id):
         return SimTab.ShowTab(tab_id)
 
 #%% Market tab
-# Memory of selected example & Detect when selecting "Example"
-@app.callback(Output('market-topmenu-second', 'children'),[Input('market-topmenu-insert','value')],[State('market-topmenu-second-drop', 'value')])
-def voidfct_AgentMemory(insert_value,example_value):
-    return MarketTab.ShowTabMarketTopMenu_Insert(insert_value,example_value)
+# Action's options
+@app.callback(Output('market-topmenu-second', 'children'),[Input('market-topmenu-insert','value')])
+def voidfct_Insert(insert_value):
+    return MarketTab.ShowTabMarketTopMenu_Insert(insert_value)
 
-# Memory of selected example
-@app.callback(Output('add-button', 'children'),[Input('market-topmenu-second-drop','value'),Input('market-topmenu-insert','value')])
-def voidfct_ExampleMemory(insert_value,add_value):
-    return MarketTab.ShowTabMarketTopMenu_MemoryEx(insert_value,add_value)
+# Action's options - number
+@app.callback(Output('market-topmenu-third-div', 'style'),[Input('market-topmenu-second-drop','value')])
+def voidfct_Number(example_value):
+    return MarketTab.ShowTabMarketTopMenu_Number(example_value)
 
 # Detect click on button 'Add'/'Select'
 @app.callback(Output('market-menu', 'children'),[Input('add-button', 'n_clicks')],
-              [State('market-topmenu-insert', 'value'),State('market-topmenu-second-drop', 'value')])
-def voidfct_AddButton(n_clicks,add_value,example_value):
-    return MarketTab.ShowTabMarketMenu(n_clicks,add_value,example_value)
+              [State('market-topmenu-insert', 'value'),State('market-topmenu-second-drop', 'value'),State('market-topmenu-third-number', 'value')])
+def voidfct_AddButton(n_clicks,add_value,example_value,size_value):
+    return MarketTab.ShowTabMarketMenu(n_clicks,add_value,example_value,size_value)
 
 # Detect click on buttons Refresh
 @app.callback(Output('market-menu-agent-refresh', 'children'),[Input('agent-refresh-button', 'n_clicks')])

@@ -17,8 +17,8 @@ class MarketTabApp(TabApp):
         self.init_GraphOfMarketGraph()
         self.init_DefaultMarketOptions()
         # Default menu plot parameters
-        self.market_topmenu_add = 'Example'
-        self.market_topmenu_second = 'P2P'
+        self.market_topmenu_add = 'Add'
+        self.market_topmenu_second = 'Agent'
         self.default_AgentMenuTable = html.Div([
                 html.Div([], style={'display':'table-cell','width':'27%'}),
                 html.Div([], style={'display':'table-cell','width':'50%'}),
@@ -44,7 +44,7 @@ class MarketTabApp(TabApp):
         self.allow_P2P_within_community = True
         self.default_partnership_preference = 0
         self.default_community_preference = 0
-        self.default_community_size = 1
+        self.default_community_size = 3
         #self.color_dict_ag = {'Manager':'green','Agent':'blue','Asset':'black'}
         #self.color_dict_conn = {'Alone':'red','Connected':'blue'}
         self.default_asset = {'name':'Asset 1', 'id':0, 'type':'Load',
@@ -69,65 +69,76 @@ class MarketTabApp(TabApp):
                     html.Div([],id='market-menu')])
         return self.MenuTab(menu_data,graph_data,bottom_data)
     
-    #%% Market tab -- Top menu    
-    def ShowTabMarketTopMenu_MemoryAdd(self,select_value):
-        self.market_topmenu_add = select_value
-    
-    def ShowTabMarketTopMenu_MemoryEx(self,select_value,add_value):
-        self.market_topmenu_second = select_value
-        return self.ShowTabNarketTopMenu_Button(select_value,add_value)
-    
-    def ShowTabNarketTopMenu_Button(self,select_value,add_value):
-        if (add_value=='Agent' and select_value!=-1 and select_value!=None) or add_value=='Delete':
-            return 'Select'
+    #%% Market tab -- Top menu   
+    def ShowTabMarketTopMenu_Insert(self,insert_value=None):
+        if insert_value is None:
+            insert_value = self.market_topmenu_add
         else:
-            return 'Add'
-    
-    def ShowTabMarketTopMenu_Insert(self,insert_value,example_value):
-        self.ShowTabMarketTopMenu_MemoryAdd(insert_value)
-        if insert_value=='Example':
-            return html.Div([dcc.Dropdown( id='market-topmenu-second-drop',
+            self.market_topmenu_add = insert_value
+        if insert_value=='Add':
+            return html.Div([
+                    dcc.Dropdown( id='market-topmenu-second-drop',
                                 options=[
-                                            {'label': 'Full P2P', 'value': 'P2P'},
-                                            {'label': 'Community based', 'value': 'Community'},
-                                            {'label': 'Hybrid', 'value': 'Hybrid'}
-                                        ], value=example_value)])
-        elif insert_value=='Community':
-            if not isinstance(example_value,int):
-                example_value = self.default_community_size
-            return html.Div([dcc.Input( id='market-topmenu-second-drop', type='number', step=1, min=1, value=example_value)])
-        elif insert_value=='Agent':
-            opt = [{'label':'New Agent','value':-1}]
-            opt.extend([{'label': self.MarketGraph.vs[i]['name'], 'value':i} for i in range(len(self.MarketGraph.vs))])
-            return html.Div([dcc.Dropdown( id='market-topmenu-second-drop', options=opt, value=example_value,placeholder='New Agent')])
+                                            {'label': 'Agent', 'value': 'Agent'},
+                                            {'label': 'Community', 'value': 'Community'},
+                                            {'label': 'Link', 'value': 'Link'},
+                                            {'label': 'From examples (soon)', 'value': 'Example'},
+                                            {'label': 'From File (soon)', 'value': 'File'},
+                                        ], 
+                                value=self.market_topmenu_second,
+                                clearable=False)
+                    ])
+        elif insert_value=='Change' or insert_value=='Delete':
+            return html.Div([
+                    dcc.Dropdown( id='market-topmenu-second-drop',
+                                 options=[{'label': self.MarketGraph.vs[i]['name'], 'value':i} for i in range(len(self.MarketGraph.vs))], 
+                                 value=self.market_topmenu_second,
+                                 clearable=False)
+                    ])
         else:
             return html.Div([dcc.Dropdown( id='market-topmenu-second-drop')],style={'display':'none'})
+    
+    def ShowTabMarketTopMenu_Number(self,example_value=None):
+        if example_value is None:
+            example_value = self.market_topmenu_second
+        else:
+            self.market_topmenu_second = example_value
+        if example_value=='Community':
+            return {'display':'block'}
+        else:
+            return {'display':'none'}
     
     def ShowTabMarketTopMenu(self):
         self.state_market_tab = 1
         return html.Div([
-                html.Div([dcc.Dropdown( id='market-topmenu-insert',
-                        options=[
-                                {'label': 'Single Agent', 'value': 'Agent'},
-                                {'label': 'Community', 'value': 'Community'},
-                                {'label': 'From examples (soon)', 'value': 'Example'},
-                                {'label': 'From File (soon)', 'value': 'File'},
-                                {'label': 'Delete Agent', 'value': 'Delete'}
-                            ], value=self.market_topmenu_add)
-                        ],style={'display': 'table-cell', 'width': '40%'}
-                        ),
-                html.Div([], id='market-topmenu-void1', style={'display': 'table-cell', 'width': '4%'}),
+                html.Div(['Actions:']),
                 html.Div([
-                        self.ShowTabMarketTopMenu_Insert(self.market_topmenu_add,self.market_topmenu_second)
-                        ], id='market-topmenu-second', style={'display': 'table-cell', 'width': '40%'}),
-                html.Div([], id='market-topmenu-void2', style={'display': 'table-cell', 'width': '4%'}),
-                html.Div([
-                        html.Button(children='Add', id = 'add-button', type='submit', n_clicks=self.total_clicks)
-                        ], id='test', style={'display': 'table-cell', 'width': '10%'})
-                ], id='market-topmenu', style={'display': 'table', 'width': '100%'})
+                    html.Div([dcc.Dropdown( id='market-topmenu-insert',
+                            options=[
+                                    {'label': 'Add', 'value': 'Add'},
+                                    {'label': 'Change', 'value': 'Change'},
+                                    {'label': 'Delete', 'value': 'Delete'}
+                                ], value=self.market_topmenu_add, clearable=False)
+                            ],style={'display': 'table-cell', 'width': '20%'}
+                            ),
+                    html.Div([], id='market-topmenu-void1', style={'display': 'table-cell', 'width': '3%'}),
+                    html.Div([self.ShowTabMarketTopMenu_Insert()
+                            ], id='market-topmenu-second', style={'display': 'table-cell', 'width': '34%'}),
+                    html.Div([], id='market-topmenu-void2', style={'display': 'table-cell', 'width': '3%'}),
+                    html.Div([
+                            html.Div([dcc.Input( id='market-topmenu-third-number', type='number', step=1, min=1, value=self.default_community_size)
+                                ], id='market-topmenu-third-div', style=self.ShowTabMarketTopMenu_Number() )
+                            ], id='market-topmenu-third', style={'display': 'table-cell', 'width': '27%'}),
+                    html.Div([], id='market-topmenu-void3', style={'display': 'table-cell', 'width': '3%'}),
+                    html.Div([
+                            html.Button(children='Select', id = 'add-button', type='submit', n_clicks=self.total_clicks)
+                            ], id='test', style={'display': 'table-cell', 'width': '10%'})
+                    ], id='market-topmenu', style={'display': 'table', 'width': '100%'}),
+                    html.Hr()
+                ])
     
     #%% Market tab -- Main menu
-    def ShowTabMarketMenu(self,n_clicks,add_value,example_value):
+    def ShowTabMarketMenu(self,n_clicks,add_value,example_value,size_value):
         self.state_market_tab = 2
         if self.total_clicks != n_clicks:
             self.total_clicks = n_clicks
@@ -135,23 +146,26 @@ class MarketTabApp(TabApp):
         else:
             self.update_graph = False
         
-        if add_value=='Agent':
-            if isinstance(example_value,int) and example_value>-1:
-                self.AgentID = example_value
-                self.AgentName = self.MarketGraph.vs[self.AgentID]['name']
-            else:
+        if add_value=='Add':
+            if example_value=='Agent':
                 self.CreateAgent()
-            return self.ShowTabMarketMenu_Agent()
-        elif add_value=='Community':
-            self.CreateCommunity(example_value)
-            return self.ShowTabMarketMenu_Community()
-        elif add_value=='Delete':
-            return self.ShowTabMarketMenu_Delete()
+                return self.ShowTabMarketMenu_Agent()
+            elif example_value=='Community':
+                self.CreateCommunity(size_value)
+                return self.ShowTabMarketMenu_Community()
+            #elif example_value=='Link':
+            #    return 
+            #elif example_value=='Example':
+            #    return
+            #elif example_value=='File':
+            #    return
         else:
-            return [
-                html.Div([n_clicks]),
-                html.Div([add_value]),
-                html.Div([example_value])]
+            self.AgentID = example_value
+            self.AgentName = self.MarketGraph.vs[self.AgentID]['name']
+            if add_value=='Delete':
+                return self.ShowTabMarketMenu_Delete()
+            else:
+                return self.ShowTabMarketMenu_Agent()
     
     def ShowTabMarketMenu_Preferences(self,idx=None):
         if idx is None:
@@ -452,19 +466,6 @@ class MarketTabApp(TabApp):
                             html.Div(["Do you confirm the suppresion of asset "+list_assets+" of agent "+self.MarketGraph.vs[self.AgentID]['name']+"?"])
                             ]
             if message!=[]:
-                #message.extend([html.Div([
-                #                html.Div([
-                #                    html.Div([], style={'display':'table-cell','width':'15%'}),
-                #                    html.Div([], style={'display':'table-cell','width':'15%'}),
-                #                    html.Div([], style={'display':'table-cell','width':'70%'}),
-                #                ], style={'display':'table-row'}),
-                #                html.Div([
-                #                    html.Div([html.Button(children='Delete', id = 'market-menu-delete-confirm-button', type='submit', n_clicks=self.clicks_delete_confirm)], style={'display':'table-cell'}),
-                #                    html.Div([html.Button(children='Cancel', id = 'market-menu-delete-cancel-button', type='submit', n_clicks=self.clicks_delete_cancel)], style={'display':'table-cell'}),
-                #                ], style={'display':'table-row'}),
-                #             ], style={'display':'table','width':'100%'}),
-                #             html.Div(html.Button(children='block', id ='market-menu-delete-show-confirm-button', type='submit', n_clicks=1), style={'display':'none'})
-                #             ])
                 message.append(html.Div(html.Button(children='block', id ='market-menu-delete-show-confirm-button', type='submit', n_clicks=1), style={'display':'none'}))
                 return html.Div(message)
             else:
