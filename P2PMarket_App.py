@@ -69,9 +69,9 @@ def voidfct_Insert(insert_value):
     return MarketTab.ShowTabMarketTopMenu_Insert(insert_value)
 
 # Action's options - number
-@app.callback(Output('market-topmenu-third-div', 'style'),[Input('market-topmenu-second-drop','value')])
-def voidfct_Number(example_value):
-    return MarketTab.ShowTabMarketTopMenu_Number(example_value)
+@app.callback(Output('market-topmenu-third', 'children'),[Input('market-topmenu-second-drop','value')],[State('market-topmenu-insert', 'value')])
+def voidfct_Number(example_value,add_value):
+    return MarketTab.ShowTabMarketTopMenu_Number(example_value,add_value)
 
 # Detect click on button 'Add'/'Select'
 @app.callback(Output('market-menu', 'children'),[Input('add-button', 'n_clicks')],
