@@ -24,7 +24,7 @@ The following points will/need to be developed:
 To use this web based app the following python packages are required:
 - dash
 - dash-renderer 
-- dash-core-components (rc5)
+- dash-core-components (v. 0.13.0-rc5)
 - dash-html-components 
 - plotly
 - python-igraph
