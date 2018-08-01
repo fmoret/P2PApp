@@ -195,9 +195,9 @@ def voidfct_DeleteShowConfirmed(n_clicks,show_disp):
     return MarketTab.ShowTabMarketMenu_DeleteShowConfirmed(show_disp)
 
 # Save button
-@app.callback(Output('market-menu-save-message', 'children'),[Input('market-menu-save-button', 'n_clicks')])
-def voidfct_SaveGraph(n_clicks):
-    return MarketTab.ShowTabMarketMenu_SaveGraph(n_clicks)
+@app.callback(Output('market-menu-save-message', 'children'),[Input('market-menu-save-button', 'n_clicks')],[State('market-menu-saveas-filename', 'value')])
+def voidfct_SaveGraph(n_clicks,filename):
+    return MarketTab.ShowTabMarketMenu_SaveGraph(n_clicks,filename)
 
 # Save button message
 @app.callback(Output('market-menu-save-refresh', 'children'),[Input('market-menu-save-button-message', 'n_clicks')],[State('market-menu-save-button-message', 'children')])
@@ -205,9 +205,9 @@ def voidfct_SaveGraphMessage(n_clicks,message):
     return [message]
 
 # Save button
-@app.callback(Output('market-menu-addfile-message', 'children'),[Input('market-menu-addfile-button', 'n_clicks')],[State('market-menu-addfile-filename', 'value')])
-def voidfct_AddFile(n_clicks,filename):
-    return MarketTab.ShowTabMarketMenu_AddFileMessage(n_clicks,filename)
+@app.callback(Output('market-menu-addfile-message', 'children'),[Input('market-menu-addfile-button', 'n_clicks')],[State('market-menu-addfile-filename', 'value'),State('market-menu-addfile-type', 'value')])
+def voidfct_AddFile(n_clicks,filename,actiontype):
+    return MarketTab.ShowTabMarketMenu_AddFileMessage(n_clicks,filename,actiontype)
 
 # Save button message
 @app.callback(Output('market-menu-addfile-refresh', 'children'),[Input('market-menu-addfile-button-message', 'n_clicks')],[State('market-menu-addfile-button-message', 'children')])
@@ -216,19 +216,6 @@ def voidfct_AddFileMessage(n_clicks,message):
 
 
 
-
-
-# Detect click on buttons Delete and Cancel of suppression
-#@app.callback(Output('market-menu-agent-delete', 'children'),[
-#        Input('market-menu-agent-delete-button-community', 'n_clicks'),
-#        Input('market-menu-agent-delete-button-manager', 'n_clicks'),
-#        Input('market-menu-agent-delete-button-agent', 'n_clicks'),
-#        Input('market-menu-agent-cancel-delete-community', 'n_clicks'),
-#        Input('market-menu-agent-cancel-delete-manager', 'n_clicks'),
-#        Input('market-menu-agent-cancel-delete-agent', 'n_clicks'),
-#        ])
-#def voidfct_AgentDeleteButton(n_clicks_com,n_clicks_man,n_clicks_ag,n_cancel_comm,n_cancel_man,n_cancel_ag):
-#    return MarketTab.ShowTabMarketMenu_AgentDelete_Warning(n_clicks_com,n_clicks_man,n_clicks_ag,n_cancel_comm,n_cancel_man,n_cancel_ag)
 
 
 if __name__ == '__main__':

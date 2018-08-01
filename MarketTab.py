@@ -18,6 +18,7 @@ class MarketTabApp(TabApp):
         self.init_GraphOfMarketGraph()
         self.init_DefaultMarketOptions()
         self.init_DefaultFilename()
+        self.current_filename = self.default_filename
         # Default menu plot parameters
         self.market_topmenu_add = 'Add'
         self.market_topmenu_second = 'Agent'
@@ -66,6 +67,7 @@ class MarketTabApp(TabApp):
         n_start = 0
         self.default_dirpath_examples = 'graphs/examples'
         self.default_dirpath = 'graphs/saved'
+        self.current_dirpath = self.default_dirpath
         #self.default_dirpath_absolute = os.path.abspath(self.default_dirpath)
         for file in os.listdir(self.default_dirpath):
             if file.endswith(".pyp2p") and len(file)>10:
@@ -97,7 +99,7 @@ class MarketTabApp(TabApp):
                                             {'label': 'Agent', 'value': 'Agent'},
                                             {'label': 'Community', 'value': 'Community'},
                                             {'label': 'Link (soon)', 'value': 'Link'},
-                                            {'label': 'From examples', 'value': 'Example'},
+                                            {'label': 'From example', 'value': 'Example'},
                                             {'label': 'From File', 'value': 'File'},
                                         ], 
                                 value=self.market_topmenu_second,
@@ -121,6 +123,17 @@ class MarketTabApp(TabApp):
                                             {'label': 'Save as', 'value': 'Save as'},
                                         ], 
                                 value='Save',
+                                clearable=False)
+                    ])
+        elif insert_value=='Open':
+            return html.Div([
+                    dcc.Dropdown( id='market-topmenu-second-drop',
+                                options=[
+                                            {'label': 'New', 'value': 'New'},
+                                            {'label': 'From example', 'value': 'Example'},
+                                            {'label': 'From File', 'value': 'File'},
+                                        ], 
+                                value=self.market_topmenu_second,
                                 clearable=False)
                     ])
         else:
@@ -160,8 +173,7 @@ class MarketTabApp(TabApp):
                                     {'label': 'Modify', 'value': 'Change'},
                                     {'label': 'Delete', 'value': 'Delete'},
                                     {'label': 'Save', 'value': 'Save'},
-                                    {'label': 'Open (soon)', 'value': 'Open'},
-                                    {'label': 'New (soon)', 'value': 'New'}
+                                    {'label': 'Open', 'value': 'Open'}
                                 ], value=self.market_topmenu_add, clearable=False)
                             ],style={'display': 'table-cell', 'width': '20%'}
                             ),
@@ -197,9 +209,18 @@ class MarketTabApp(TabApp):
                 self.CreateCommunity(size_value)
                 return self.ShowTabMarketMenu_Community()
             elif example_value=='Example':
-                return self.ShowTabMarketMenu_AddFile('Example')
+                return self.ShowTabMarketMenu_AddFile('Example','Add')
             elif example_value=='File':
-                return self.ShowTabMarketMenu_AddFile('File')
+                return self.ShowTabMarketMenu_AddFile('File','Add')
+            else:
+                return 
+        elif add_value=='Open':
+            if example_value=='Example':
+                return self.ShowTabMarketMenu_AddFile('Example','Open')
+            elif example_value=='File':
+                return self.ShowTabMarketMenu_AddFile('File','Open')
+            elif example_value=='New':
+                return self.ShowTabMarketMenu_AddFile('New','Open')
             else:
                 return 
         else:
@@ -659,12 +680,12 @@ class MarketTabApp(TabApp):
     
     #%% Market tab -- Save menu
     def ShowTabMarketMenu_Save(self,type_save='Save'):
+        self.init_DefaultFilename()
         if type_save=='Save as':
-            self.init_DefaultFilename()
-            text_read = [dcc.Input( id='market-menu-saveas-filename', value=self.default_filename[0:-6],type='text', style={'width':'99%'})]
+            text_read = [dcc.Input( id='market-menu-saveas-filename', value=self.current_filename[0:-6],type='text', style={'width':'99%'})]
         else:
-            text_read = [self.default_filename[0:-6],
-                         dcc.Input( id='market-menu-saveas-filename', value=self.default_filename[0:-6],type='text', style={'display':'none'})]
+            text_read = [self.current_filename[0:-6],
+                         dcc.Input( id='market-menu-saveas-filename', value=self.current_filename[0:-6],type='text', style={'display':'none'})]
         return html.Div([
                 html.Div([
                     html.Div([
@@ -684,22 +705,42 @@ class MarketTabApp(TabApp):
                 html.Div([], id='market-menu-save-message')
                 ], id='market-menu-save-refresh')
     
-    def ShowTabMarketMenu_SaveGraph(self,n_save=None):
+    def ShowTabMarketMenu_SaveGraph(self,n_save=None,filename=None):
         if n_save is not None and self.clicks_save != n_save:
             self.clicks_save = n_save
+            if filename is None:
+                filename = self.current_filename
             return html.Div([
-                    html.Button(children=self.SaveMarketGraph(), id = 'market-menu-save-button-message', type='submit', n_clicks=0)
+                    html.Button(children=self.SaveMarketGraph(filename), id = 'market-menu-save-button-message', type='submit', n_clicks=0)
                     ], style={'display':'none'})
         else:
             return 
     
     #%% Market tab -- Agent menu
-    def ShowTabMarketMenu_AddFile(self,filetype='Example'):
+    def ShowTabMarketMenu_AddFile(self,filetype='Example',actiontype='Add'):
         if filetype=='File':
-            sel_path = self.default_dirpath
+            self.current_dirpath = self.default_dirpath
         else:
-            sel_path = self.default_dirpath_examples
+            self.current_dirpath = self.default_dirpath_examples
+        if actiontype=='Open':
+            mark = dcc.Markdown('**Warning: All changes since last saving will be lost.**')
+        else:
+            mark = ''
+        if actiontype=='Open' and filetype=='New':
+            button_chil = 'New'
+            entry = ''
+            drop = html.Div([dcc.Dropdown( id='market-menu-addfile-filename', value='****NEW****')], style={'display':'none'})
+        else:
+            if actiontype=='Open':
+                button_chil = 'Open'
+            else:
+                button_chil = 'Add'
+            entry = 'File:'
+            drop = dcc.Dropdown( id='market-menu-addfile-filename', clearable=False,
+                                options=[{'label':str(file[0:-6]),'value':str(file)} for file in os.listdir(self.current_dirpath) if file.endswith('.pyp2p')], 
+                                value=self.current_filename)
         return html.Div([
+                mark,
                 html.Div([
                     html.Div([
                             html.Div([], style={'display':'table-cell','width':'10%'}),
@@ -709,24 +750,29 @@ class MarketTabApp(TabApp):
                             html.Div([], style={'display':'table-cell','width':'30%'}),
                             ], style={'display':'table-row'}),
                     html.Div([
-                            html.Div(['File:'], style={'display':'table-cell'}),
-                            html.Div([
-                                    dcc.Dropdown( id='market-menu-addfile-filename', clearable=False,
-                                                    options=[{'label':str(file[0:-6]),'value':str(file)} for file in os.listdir(sel_path) if file.endswith('.pyp2p')], 
-                                                    value=self.default_filename)
-                                    ], style={'display':'table-cell'}),
-                            html.Div([], style={'display':'table-cell'}),
-                            html.Div([html.Button(children='Add', id = 'market-menu-addfile-button', type='submit', n_clicks=self.clicks_save)], style={'display':'table-cell'}),
-                            ], style={'display':'table-row'}),
+                        html.Div([entry], style={'display':'table-cell'}),
+                        html.Div([drop], style={'display':'table-cell'}),
+                        html.Div([
+                                dcc.Input(id='market-menu-addfile-type', value=actiontype, style={'display':'none'})
+                                ], style={'display':'table-cell'}),
+                        html.Div([html.Button(children=button_chil, id = 'market-menu-addfile-button', type='submit', n_clicks=self.clicks_save)], style={'display':'table-cell'}),
+                        ], style={'display':'table-row'}),
                         ], style={'display':'table','width':'100%'}),
                 html.Div([], id='market-menu-addfile-message')
                 ], id='market-menu-addfile-refresh')
     
-    def ShowTabMarketMenu_AddFileMessage(self,n_add=None,filename=None):
+    def ShowTabMarketMenu_AddFileMessage(self,n_add=None,filename=None,actiontype='Add'):
         if n_add is not None and self.clicks_save != n_add and filename is not None:
             self.clicks_save = n_add
+            message = ''
+            if actiontype=='Open' and filename=='****NEW****':
+                self.MarketGraph = Graph(directed=True)
+            elif actiontype=='Open':
+                self.OpenMarketGraph(filename)
+            elif actiontype=='Add':
+                message = self.UnionMarketGraph(filename)
             return html.Div([
-                    html.Button(children=self.UnionMarketGraph(filename), id = 'market-menu-addfile-button-message', type='submit', n_clicks=0)
+                    html.Button(children=message, id = 'market-menu-addfile-button-message', type='submit', n_clicks=0)
                     ], style={'display':'none'})
         else:
             return 
@@ -969,12 +1015,31 @@ class MarketTabApp(TabApp):
             self.DeleteAgent(del_id)
     
     #%% Market tab -- graph management -- Save & Open & Add from file
-    def SaveMarketGraph(self):
-        self.MarketGraph.save(self.default_dirpath+'/'+self.default_filename, format='picklez')
+    def SaveMarketGraph(self,filename=None):
+        if filename is None:
+            filename = self.current_filename
+        if not filename.endswith('.pyp2p'):
+            filename += '.pyp2p'
+        self.MarketGraph.save(self.current_dirpath+'/'+filename, format='picklez')
+        self.current_filename = filename
         return 'The graph has been saved.'
     
-    def UnionMarketGraph(self,filename):
-        NewMarket = load(self.default_dirpath+'/'+filename, format='picklez')
+    def LoadMarketGraph(self,filename=None):
+        if filename is None:
+            filename = self.current_filename
+        if not filename.endswith('.pyp2p'):
+            filename += '.pyp2p'
+        return load(self.current_dirpath+'/'+filename, format='picklez'), filename
+    
+    def OpenMarketGraph(self,filename=None):
+        NewMarket,filename = self.LoadMarketGraph(filename)
+        if self.VerifyMarketGraphFormat(NewMarket):
+            self.MarketGraph = NewMarket
+            self.current_filename = filename
+        return
+    
+    def UnionMarketGraph(self,filename=None):
+        NewMarket,useless = self.LoadMarketGraph(filename)
         if self.VerifyMarketGraphFormat(NewMarket):
             Ag_IDs = [self.CreateAgent(True) for i in range(len(NewMarket.vs))]
             for i in range(len(NewMarket.vs)):
@@ -983,7 +1048,7 @@ class MarketTabApp(TabApp):
                         self.MarketGraph.vs[Ag_IDs[i]][att] = NewMarket.vs[i][att]
             for i in range(len(NewMarket.es)):
                 self.MarketGraph.add_edge(Ag_IDs[NewMarket.es[i].source], Ag_IDs[NewMarket.es[i].target], weight=NewMarket.es[i]['weight'])
-            return 'alright'
+            return ''
         else:
             return 'Wrong file format.'
     
