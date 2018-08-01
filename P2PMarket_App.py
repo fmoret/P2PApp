@@ -194,6 +194,26 @@ def voidfct_DeleteConfirmed(n_cancel,n_confirm,delete_type,delete_asset):
 def voidfct_DeleteShowConfirmed(n_clicks,show_disp):
     return MarketTab.ShowTabMarketMenu_DeleteShowConfirmed(show_disp)
 
+# Save button
+@app.callback(Output('market-menu-save-message', 'children'),[Input('market-menu-save-button', 'n_clicks')])
+def voidfct_SaveGraph(n_clicks):
+    return MarketTab.ShowTabMarketMenu_SaveGraph(n_clicks)
+
+# Save button message
+@app.callback(Output('market-menu-save-refresh', 'children'),[Input('market-menu-save-button-message', 'n_clicks')],[State('market-menu-save-button-message', 'children')])
+def voidfct_SaveGraphMessage(n_clicks,message):
+    return [message]
+
+# Save button
+@app.callback(Output('market-menu-addfile-message', 'children'),[Input('market-menu-addfile-button', 'n_clicks')],[State('market-menu-addfile-filename', 'value')])
+def voidfct_AddFile(n_clicks,filename):
+    return MarketTab.ShowTabMarketMenu_AddFileMessage(n_clicks,filename)
+
+# Save button message
+@app.callback(Output('market-menu-addfile-refresh', 'children'),[Input('market-menu-addfile-button-message', 'n_clicks')],[State('market-menu-addfile-button-message', 'children')])
+def voidfct_AddFileMessage(n_clicks,message):
+    return [message]
+
 
 
 

@@ -5,9 +5,10 @@
 
 import dash_core_components as dcc
 import dash_html_components as html
-#from igraph import *
+from igraph import *
 from loremipsum import get_sentences
 from DashTabs import TabApp
+import os
 
 
 class MarketTabApp(TabApp):
@@ -16,6 +17,7 @@ class MarketTabApp(TabApp):
         self.ShareWidth()
         self.init_GraphOfMarketGraph()
         self.init_DefaultMarketOptions()
+        self.init_DefaultFilename()
         # Default menu plot parameters
         self.market_topmenu_add = 'Add'
         self.market_topmenu_second = 'Agent'
@@ -23,7 +25,8 @@ class MarketTabApp(TabApp):
         self.default_AgentMenuTable = html.Div([
                 html.Div([], style={'display':'table-cell','width':'27%'}),
                 html.Div([], style={'display':'table-cell','width':'50%'}),
-                html.Div([], style={'display':'table-cell','width':'23%'}),
+                html.Div([], style={'display':'table-cell','width':'3%'}),
+                html.Div([], style={'display':'table-cell','width':'20%'}),
                 ], style={'display':'table-row'})
         # State variables
         self.update_graph = False
@@ -32,6 +35,7 @@ class MarketTabApp(TabApp):
         self.maxID = 0
         self.clicks_delete_confirm = 0
         self.clicks_delete_cancel = 0
+        self.clicks_save = 0
         # Granting access to Market's graph 
         self.MarketGraph = Market
         # Info on current working agent
@@ -57,7 +61,17 @@ class MarketTabApp(TabApp):
                  {'label':'Autonomy','value':'Autonomy'},
                  {'label':'Lowest Importation','value':'Lowest Importation'},
                  {'label':'Peak Shaving','value':'Peak Shaving'}]
-        
+    
+    def init_DefaultFilename(self):
+        n_start = 0
+        self.default_dirpath_examples = 'graphs/examples'
+        self.default_dirpath = 'graphs/saved'
+        #self.default_dirpath_absolute = os.path.abspath(self.default_dirpath)
+        for file in os.listdir(self.default_dirpath):
+            if file.endswith(".pyp2p") and len(file)>10:
+                if file[0:4]=='P2P_' and file[4:-6].isdigit():
+                    n_start = max(int(file[4:-6])+1, n_start)
+        self.default_filename = 'P2P_' + str(n_start) + '.pyp2p'
     
     #%% Market tab -- Display management
     def ShowTab(self,tab_id):
@@ -82,9 +96,9 @@ class MarketTabApp(TabApp):
                                 options=[
                                             {'label': 'Agent', 'value': 'Agent'},
                                             {'label': 'Community', 'value': 'Community'},
-                                            {'label': 'Link', 'value': 'Link'},
-                                            {'label': 'From examples (soon)', 'value': 'Example'},
-                                            {'label': 'From File (soon)', 'value': 'File'},
+                                            {'label': 'Link (soon)', 'value': 'Link'},
+                                            {'label': 'From examples', 'value': 'Example'},
+                                            {'label': 'From File', 'value': 'File'},
                                         ], 
                                 value=self.market_topmenu_second,
                                 clearable=False)
@@ -94,9 +108,19 @@ class MarketTabApp(TabApp):
                     dcc.Dropdown( id='market-topmenu-second-drop',
                                 options=[
                                             {'label': 'Agent/Community', 'value': 'Agent/Community'},
-                                            {'label': 'Link', 'value': 'Link'},
+                                            {'label': 'Link (soon)', 'value': 'Link'},
                                         ], 
                                 value=self.market_topmenu_second,
+                                clearable=False)
+                    ])
+        elif insert_value=='Save':
+            return html.Div([
+                    dcc.Dropdown( id='market-topmenu-second-drop',
+                                options=[
+                                            {'label': 'Save', 'value': 'Save'},
+                                            {'label': 'Save as', 'value': 'Save as'},
+                                        ], 
+                                value='Save',
                                 clearable=False)
                     ])
         else:
@@ -113,11 +137,13 @@ class MarketTabApp(TabApp):
             self.market_topmenu_add = add_value
         if add_value=='Add' and example_value=='Community':
             return html.Div([dcc.Input( id='market-topmenu-third-number', type='number', step=1, min=1, value=self.default_community_size)])
-        elif add_value!='Add' and example_value=='Agent/Community':
+        elif add_value=='Delete' and example_value=='Agent/Community':
+            return html.Div([dcc.Dropdown(id='market-topmenu-third-number')], style={'display':'none'})
+        elif add_value=='Change' and example_value=='Agent/Community':
             return html.Div([
                     dcc.Dropdown( id='market-topmenu-third-number',
                                  options=[{'label': self.MarketGraph.vs[i]['name'], 'value':i} for i in range(len(self.MarketGraph.vs))], 
-                                 value=self.market_topmenu_second,
+                                 value=self.market_topmenu_third,
                                  clearable=False)
                     ])
         else:
@@ -131,17 +157,20 @@ class MarketTabApp(TabApp):
                     html.Div([dcc.Dropdown( id='market-topmenu-insert',
                             options=[
                                     {'label': 'Add', 'value': 'Add'},
-                                    {'label': 'Change', 'value': 'Change'},
-                                    {'label': 'Delete', 'value': 'Delete'}
+                                    {'label': 'Modify', 'value': 'Change'},
+                                    {'label': 'Delete', 'value': 'Delete'},
+                                    {'label': 'Save', 'value': 'Save'},
+                                    {'label': 'Open (soon)', 'value': 'Open'},
+                                    {'label': 'New (soon)', 'value': 'New'}
                                 ], value=self.market_topmenu_add, clearable=False)
                             ],style={'display': 'table-cell', 'width': '20%'}
                             ),
-                    html.Div([], id='market-topmenu-void1', style={'display': 'table-cell', 'width': '3%'}),
+                    html.Div([], id='market-topmenu-void1', style={'display': 'table-cell', 'width': '2%'}),
                     html.Div([self.ShowTabMarketTopMenu_Insert()
-                            ], id='market-topmenu-second', style={'display': 'table-cell', 'width': '29%'}),
-                    html.Div([], id='market-topmenu-void2', style={'display': 'table-cell', 'width': '3%'}),
+                            ], id='market-topmenu-second', style={'display': 'table-cell', 'width': '32%'}),
+                    html.Div([], id='market-topmenu-void2', style={'display': 'table-cell', 'width': '2%'}),
                     html.Div([self.ShowTabMarketTopMenu_Number()], id='market-topmenu-third', style={'display': 'table-cell', 'width': '32%'}),
-                    html.Div([], id='market-topmenu-void3', style={'display': 'table-cell', 'width': '3%'}),
+                    html.Div([], id='market-topmenu-void3', style={'display': 'table-cell', 'width': '2%'}),
                     html.Div([
                             html.Button(children='Select', id = 'add-button', type='submit', n_clicks=self.total_clicks)
                             ], id='test', style={'display': 'table-cell', 'width': '10%'})
@@ -158,22 +187,28 @@ class MarketTabApp(TabApp):
         else:
             self.update_graph = False
         
-        if add_value=='Add':
+        if add_value=='Save':
+            return self.ShowTabMarketMenu_Save(example_value)
+        elif add_value=='Add':
             if example_value=='Agent':
                 self.CreateAgent()
                 return self.ShowTabMarketMenu_Agent()
             elif example_value=='Community':
                 self.CreateCommunity(size_value)
                 return self.ShowTabMarketMenu_Community()
+            elif example_value=='Example':
+                return self.ShowTabMarketMenu_AddFile('Example')
+            elif example_value=='File':
+                return self.ShowTabMarketMenu_AddFile('File')
             else:
                 return 
         else:
             if example_value=='Agent/Community':
-                self.AgentID = size_value
-                self.AgentName = self.MarketGraph.vs[self.AgentID]['name']
                 if add_value=='Delete':
                     return self.ShowTabMarketMenu_Delete()
                 else:
+                    self.AgentID = size_value
+                    self.AgentName = self.MarketGraph.vs[self.AgentID]['name']
                     return self.ShowTabMarketMenu_Agent()
             else:
                 return 
@@ -202,11 +237,12 @@ class MarketTabApp(TabApp):
                                                     #{'label': 'Grid', 'value': 'Grid'}
                                                 ], value=self.MarketGraph.vs[self.AgentID]['Type'])
                                     ], style={'display':'table-cell'}),
-                        html.Div([
-                                html.Button(children='Refresh', id = 'agent-refresh-button', type='submit')
-                                ], style={'display':'table-cell'}, id='market-menu-agent-type-void'),
-                            ], style={'display':'table-row'})
-                    ], style={'display':'table','width':'100%'}),
+                            html.Div([], style={'display':'table-cell'}),
+                            html.Div([
+                                    html.Button(children='Refresh', id = 'agent-refresh-button', type='submit')
+                                    ], style={'display':'table-cell'}, id='market-menu-agent-type-void'),
+                                ], style={'display':'table-row'})
+                        ], style={'display':'table','width':'100%'}),
                 html.Div(self.ShowTabMarketMenu_AgentRefresh(), id='market-menu-agent-refresh')
                 ])
     
@@ -494,18 +530,25 @@ class MarketTabApp(TabApp):
                 for i in range(length):
                     list_assets += "'"+ self.MarketGraph.vs[self.AgentID]['Assets'][delete_asset[i]]['name'] +"',"
                 list_assets += "'"+ self.MarketGraph.vs[self.AgentID]['Assets'][delete_asset[length]]['name'] +"'"
+                self.DeleteAssets(delete_asset)
                 if length>0:
                     return ["Assets "+list_assets+" have been deleted"]
                 else:
-                    return ["Asset "+list_assets+" have been deleted"]
+                    return ["Asset "+list_assets+" has been deleted"]
             elif delete_type=='Agent':
-                return ["Agent '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                message = ["Agent '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                self.DeleteAgent()
+                return message
             elif delete_type=='Manager':
-                return ["Community mannager '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                message = ["Community mannager '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                self.DeleteAgent()
+                return message
             elif delete_type=='Community':
-                return ["Community '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                message = ["Community '"+self.MarketGraph.vs[self.AgentID]['name']+"' has been deleted"]
+                self.DeleteCommunity()
+                return message
             else:
-                return ['Confirm',str(delete_type),str(delete_asset)]
+                return []#['Confirm ',str(delete_type),' ',str(delete_asset)]
         elif self.clicks_delete_cancel != n_cancel:
             self.clicks_delete_cancel = n_cancel
             return []
@@ -515,7 +558,181 @@ class MarketTabApp(TabApp):
     def ShowTabMarketMenu_DeleteShowConfirmed(self,show_disp):
         return {'display':show_disp}
     
-    #%% Market tab -- graph management
+    #%% Market tab -- Assets menu
+    def ShowAssetsMenu(self):
+        if self.AssetID >= int(self.MarketGraph.vs[self.AgentID]['AssetsNum']):
+            self.AssetID = int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])-1
+        return html.Div([
+                html.Div([
+                    dcc.Tabs(
+                            tabs=[
+                                    {'label': 'Asset n° {}'.format(i+1), 'value': i} for i in range(int(self.MarketGraph.vs[self.AgentID]['AssetsNum']))
+                                    ],
+                            value=self.AssetID,
+                            id='tab-assets',
+                            vertical=True
+                        )],
+                    style={'width': '17%', 'float': 'left'}),
+                html.Div(id='tab-assets-output',style={'width': '83%', 'float': 'right'})
+                ], style={
+                    'width': '100%',
+                    'fontFamily': 'Sans-Serif',
+                    'margin-left': 'auto',
+                    'margin-right': 'auto'
+                })
+    
+    def ShowAssetMenu(self,asset_tab_id):
+        if int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])==0:
+            return []
+        else:
+            Asset_dict = self.MarketGraph.vs[self.AgentID]['Assets'][asset_tab_id]
+            self.AssetID = asset_tab_id
+            return html.Div([
+                    html.Div([
+                        html.Div([
+                                html.Div([], style={'display':'table-cell','width':'3%'}),
+                                html.Div([], style={'display':'table-cell','width':'42%'}),
+                                html.Div([], style={'display':'table-cell','width':'40%'}),
+                                html.Div([], style={'display':'table-cell','width':'15%'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Asset name:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Input( id='market-menu-asset-name', value=Asset_dict['name'], type='text', style={'width':'98%'})
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Asset type:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Dropdown( id='market-menu-asset-type', clearable=False,
+                                                     options=[
+                                                        {'label': 'Load', 'value': 'Load'},
+                                                        {'label': 'Heat Pump', 'value': 'Heat Pump'},
+                                                        {'label': 'Storage', 'value': 'Storage'},
+                                                        {'label': 'EV', 'value': 'EV'},
+                                                        {'label': 'PV', 'value': 'PV'},
+                                                        {'label': 'Wind', 'value': 'Wind'},
+                                                        {'label': 'Coal', 'value': 'Coal'},
+                                                        {'label': 'Gas', 'value': 'Gas'},
+                                                        {'label': 'Nuclear', 'value': 'Nuclear'}
+                                                    ], 
+                                                    value=Asset_dict['type'])
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Cost function type:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Dropdown( id='market-menu-asset-costfct', clearable=False,
+                                                     options=[
+                                                        {'label': 'Quadratic', 'value': 'Quadratic'},
+                                                    ], 
+                                                    value=Asset_dict['costfct'])
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Cost function coefficients:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Input( id='market-menu-asset-costfct_coeff', value=','.join(str(x) for x in Asset_dict['costfct_coeff']), type='text', style={'width':'98%'})
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Upper bound:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Input( id='market-menu-asset-p_bounds_up', value=Asset_dict['p_bounds_up'], type='number', step='1', style={'width':'98%'})
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div([], style={'display':'table-cell'}),
+                                html.Div(['Lower bound:'], style={'display':'table-cell'}),
+                                html.Div([
+                                        dcc.Input( id='market-menu-asset-p_bounds_low', value=Asset_dict['p_bounds_low'], type='number', step='1', style={'width':'98%'})
+                                        ], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                    ], style={'display':'table','width':'100%'}),
+                    html.Div([],id='market-menu-asset-void')
+                    ])
+    
+    #%% Market tab -- Save menu
+    def ShowTabMarketMenu_Save(self,type_save='Save'):
+        if type_save=='Save as':
+            self.init_DefaultFilename()
+            text_read = [dcc.Input( id='market-menu-saveas-filename', value=self.default_filename[0:-6],type='text', style={'width':'99%'})]
+        else:
+            text_read = [self.default_filename[0:-6],
+                         dcc.Input( id='market-menu-saveas-filename', value=self.default_filename[0:-6],type='text', style={'display':'none'})]
+        return html.Div([
+                html.Div([
+                    html.Div([
+                            html.Div([], style={'display':'table-cell','width':'20%'}),
+                            html.Div([], style={'display':'table-cell','width':'40%'}),
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([], style={'display':'table-cell','width':'20%'}),
+                            ], style={'display':'table-row'}),
+                    html.Div([
+                            html.Div(['File name:'], style={'display':'table-cell'}),
+                            html.Div(text_read, style={'display':'table-cell'}),
+                            html.Div([], style={'display':'table-cell'}),
+                            html.Div([html.Button(children='Save', id = 'market-menu-save-button', type='submit', n_clicks=self.clicks_save)], style={'display':'table-cell'}),
+                            ], style={'display':'table-row'}),
+                        ], style={'display':'table','width':'100%'}),
+                html.Div([], id='market-menu-save-message')
+                ], id='market-menu-save-refresh')
+    
+    def ShowTabMarketMenu_SaveGraph(self,n_save=None):
+        if n_save is not None and self.clicks_save != n_save:
+            self.clicks_save = n_save
+            return html.Div([
+                    html.Button(children=self.SaveMarketGraph(), id = 'market-menu-save-button-message', type='submit', n_clicks=0)
+                    ], style={'display':'none'})
+        else:
+            return 
+    
+    #%% Market tab -- Agent menu
+    def ShowTabMarketMenu_AddFile(self,filetype='Example'):
+        if filetype=='File':
+            sel_path = self.default_dirpath
+        else:
+            sel_path = self.default_dirpath_examples
+        return html.Div([
+                html.Div([
+                    html.Div([
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([], style={'display':'table-cell','width':'40%'}),
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([], style={'display':'table-cell','width':'30%'}),
+                            ], style={'display':'table-row'}),
+                    html.Div([
+                            html.Div(['File:'], style={'display':'table-cell'}),
+                            html.Div([
+                                    dcc.Dropdown( id='market-menu-addfile-filename', clearable=False,
+                                                    options=[{'label':str(file[0:-6]),'value':str(file)} for file in os.listdir(sel_path) if file.endswith('.pyp2p')], 
+                                                    value=self.default_filename)
+                                    ], style={'display':'table-cell'}),
+                            html.Div([], style={'display':'table-cell'}),
+                            html.Div([html.Button(children='Add', id = 'market-menu-addfile-button', type='submit', n_clicks=self.clicks_save)], style={'display':'table-cell'}),
+                            ], style={'display':'table-row'}),
+                        ], style={'display':'table','width':'100%'}),
+                html.Div([], id='market-menu-addfile-message')
+                ], id='market-menu-addfile-refresh')
+    
+    def ShowTabMarketMenu_AddFileMessage(self,n_add=None,filename=None):
+        if n_add is not None and self.clicks_save != n_add and filename is not None:
+            self.clicks_save = n_add
+            return html.Div([
+                    html.Button(children=self.UnionMarketGraph(filename), id = 'market-menu-addfile-button-message', type='submit', n_clicks=0)
+                    ], style={'display':'none'})
+        else:
+            return 
+    
+    
+    #%% Market tab -- graph management -- Lists
     def ListAgentsID(self,show_self=True,show_type=None):
         if show_type is None and show_self:
             show_list = [self.MarketGraph.vs[i]['ID'] for i in range(len(self.MarketGraph.vs))]
@@ -556,6 +773,7 @@ class MarketTabApp(TabApp):
             inclusion_list = [x.index for x in self.MarketGraph.vs.select(Type='Manager') if x['ID'] not in self.MarketGraph.vs[self.AgentID]['Partners']]
             return inclusion_list
     
+    #%% Market tab -- graph management -- Creation
     def CreateCommunity(self,n_agents,returnID=False):
         if self.update_graph:
             if not isinstance(n_agents,int):
@@ -581,6 +799,14 @@ class MarketTabApp(TabApp):
         if returnID:
             return self.AgentID
     
+    def CreateAsset(self):
+        for i in range(len(self.MarketGraph.vs[self.AgentID]['Assets']),int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])):
+            asset_dict = self.default_asset.copy()
+            asset_dict['id'] = i
+            asset_dict['name'] = 'Asset '+ str(i+1)
+            self.MarketGraph.vs[self.AgentID]['Assets'].append(asset_dict)
+    
+    #%% Market tab -- graph management -- Changes
     def AgentType(self,agent_type):
         self.MarketGraph.vs[self.AgentID]['Type'] = agent_type
         return self.ShowTabMarketMenu_AgentData()
@@ -608,13 +834,6 @@ class MarketTabApp(TabApp):
             self.MarketGraph.vs[self.AgentID]['AssetsNum'] = agent_n_assets
         self.CreateAsset()
         return self.ShowAssetsMenu()
-    
-    def CreateAsset(self):
-        for i in range(len(self.MarketGraph.vs[self.AgentID]['Assets']),int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])):
-            asset_dict = self.default_asset.copy()
-            asset_dict['id'] = i
-            asset_dict['name'] = 'Asset '+ str(i+1)
-            self.MarketGraph.vs[self.AgentID]['Assets'].append(asset_dict)
     
     def AssetChange(self,asset_name,asset_type,asset_costfct,asset_costfct_coeff,asset_p_bounds_up,asset_p_bounds_low):
         Asset_dict = self.MarketGraph.vs[self.AgentID]['Assets'][self.AssetID]
@@ -690,6 +909,16 @@ class MarketTabApp(TabApp):
                 for x in Edges.select(_target=idc):
                     self.MarketGraph.es[x.index]['weight']=float(self.MarketGraph.vs[idx]['CommPref'][i])
     
+    def CommunityChange(self,comm_name,comm_goal,comm_members):
+        self.AgentName = comm_name
+        self.MarketGraph.vs[self.AgentID]['name'] = comm_name
+        self.MarketGraph.vs[self.AgentID]['CommGoal'] = comm_goal
+        comm_members = comm_members.split(',')
+        for i in range( min(len(self.MarketGraph.vs[self.AgentID]['Community']),len(comm_members)) ):
+            self.MarketGraph.vs.select( ID=self.MarketGraph.vs[self.AgentID]['Community'][i] )[0]['name'] = comm_members[i]
+        return []
+    
+    #%% Market tab -- graph management -- Suppresions
     def DeletePartnership(self,id_from,id_to):
         if self.MarketGraph.vs[id_from]['ID'] in self.MarketGraph.vs[id_to]['Partners']:
             if self.MarketGraph.vs[id_from]['ID'] in self.MarketGraph.vs[id_to]['Partners']:
@@ -710,115 +939,68 @@ class MarketTabApp(TabApp):
                 useless = self.MarketGraph.vs[id_from]['Community'].pop(id_del)
                 useless = self.MarketGraph.vs[id_from]['CommPref'].pop(id_del)
     
-    def CommunityChange(self,comm_name,comm_goal,comm_members):
-        self.AgentName = comm_name
-        self.MarketGraph.vs[self.AgentID]['name'] = comm_name
-        self.MarketGraph.vs[self.AgentID]['CommGoal'] = comm_goal
-        comm_members = comm_members.split(',')
-        for i in range( min(len(self.MarketGraph.vs[self.AgentID]['Community']),len(comm_members)) ):
-            self.MarketGraph.vs.select( ID=self.MarketGraph.vs[self.AgentID]['Community'][i] )[0]['name'] = comm_members[i]
-        return []
+    def DeleteAssets(self,delete_asset=[]):
+        for i in range(int(self.MarketGraph.vs[self.AgentID]['AssetsNum']),len(self.MarketGraph.vs[self.AgentID]['Assets'])):
+            useless = self.MarketGraph.vs[self.AgentID]['Assets'].pop()
+        delete_asset.sort(reverse=True)
+        for i in delete_asset:
+            useless = self.MarketGraph.vs[self.AgentID]['Assets'].pop(i)
+        if delete_asset!=[]:
+            self.MarketGraph.vs[self.AgentID]['AssetsNum'] = str(len(self.MarketGraph.vs[self.AgentID]['Assets']))
     
-    #%% Market tab -- Assets menu
-    def ShowAssetsMenu(self):
-        if self.AssetID >= int(self.MarketGraph.vs[self.AgentID]['AssetsNum']):
-            self.AssetID = int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])-1
-        return html.Div([
-                html.Div([
-                    dcc.Tabs(
-                            tabs=[
-                                    {'label': 'Asset {}'.format(i+1), 'value': i} for i in range(int(self.MarketGraph.vs[self.AgentID]['AssetsNum']))
-                                    ],
-                            value=self.AssetID,
-                            id='tab-assets',
-                            vertical=True
-                        )],
-                    style={'width': '15%', 'float': 'left'}),
-                html.Div(id='tab-assets-output',style={'width': '85%', 'float': 'right'})
-                ], style={
-                    'width': '100%',
-                    'fontFamily': 'Sans-Serif',
-                    'margin-left': 'auto',
-                    'margin-right': 'auto'
-                })
+    def DeleteAgent(self,del_id=None):
+        if del_id is None:
+            del_id = self.AgentID
+        for x in self.MarketGraph.vs[del_id]['Partners']:
+            for y in self.MarketGraph.vs.select(ID=x):
+                self.DeletePartnership(del_id,y.index)
+        for x in self.MarketGraph.vs[del_id]['Community']:
+            for y in self.MarketGraph.vs.select(ID=x):
+                self.DeletePartnership(del_id,y.index)
+        self.MarketGraph.delete_vertices(del_id)
     
-    def ShowAssetMenu(self,asset_tab_id):
-        if int(self.MarketGraph.vs[self.AgentID]['AssetsNum'])==0:
-            return []
+    def DeleteCommunity(self,del_id=None):
+        if del_id is None:
+            del_id = self.AgentID
+        if self.MarketGraph.vs[del_id]['Type']=='Manager':
+            for i in range(len(self.MarketGraph.vs[del_id]['Community'])):
+                for y in self.MarketGraph.vs.select(ID=self.MarketGraph.vs[del_id]['Community'][0]):
+                    self.DeleteAgent(y.index)
+            self.DeleteAgent(del_id)
+    
+    #%% Market tab -- graph management -- Save & Open & Add from file
+    def SaveMarketGraph(self):
+        self.MarketGraph.save(self.default_dirpath+'/'+self.default_filename, format='picklez')
+        return 'The graph has been saved.'
+    
+    def UnionMarketGraph(self,filename):
+        NewMarket = load(self.default_dirpath+'/'+filename, format='picklez')
+        if self.VerifyMarketGraphFormat(NewMarket):
+            Ag_IDs = [self.CreateAgent(True) for i in range(len(NewMarket.vs))]
+            for i in range(len(NewMarket.vs)):
+                for att in self.default_vertex_attributes:
+                    if att != 'ID':
+                        self.MarketGraph.vs[Ag_IDs[i]][att] = NewMarket.vs[i][att]
+            for i in range(len(NewMarket.es)):
+                self.MarketGraph.add_edge(Ag_IDs[NewMarket.es[i].source], Ag_IDs[NewMarket.es[i].target], weight=NewMarket.es[i]['weight'])
+            return 'alright'
         else:
-            Asset_dict = self.MarketGraph.vs[self.AgentID]['Assets'][asset_tab_id]
-            self.AssetID = asset_tab_id
-            return html.Div([
-                    html.Div([
-                        html.Div([
-                                html.Div([], style={'display':'table-cell','width':'42%'}),
-                                html.Div([], style={'display':'table-cell','width':'40%'}),
-                                html.Div([], style={'display':'table-cell','width':'18%'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Asset name:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Input( id='market-menu-asset-name', value=Asset_dict['name'], type='text', style={'width':'98%'})
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Asset type:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Dropdown( id='market-menu-asset-type',
-                                                     options=[
-                                                        {'label': 'Load', 'value': 'Load'},
-                                                        {'label': 'Heat Pump', 'value': 'Heat Pump'},
-                                                        {'label': 'Storage', 'value': 'Storage'},
-                                                        {'label': 'EV', 'value': 'EV'},
-                                                        {'label': 'PV', 'value': 'PV'},
-                                                        {'label': 'Wind', 'value': 'Wind'},
-                                                        {'label': 'Coal', 'value': 'Coal'},
-                                                        {'label': 'Gas', 'value': 'Gas'},
-                                                        {'label': 'Nuclear', 'value': 'Nuclear'}
-                                                    ], 
-                                                    value=Asset_dict['type'])
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Cost function type:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Dropdown( id='market-menu-asset-costfct',
-                                                     options=[
-                                                        {'label': 'Quadratic', 'value': 'Quadratic'},
-                                                    ], 
-                                                    value=Asset_dict['costfct'])
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Cost function coefficients:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Input( id='market-menu-asset-costfct_coeff', value=','.join(str(x) for x in Asset_dict['costfct_coeff']), type='text', style={'width':'98%'})
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Upper bound:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Input( id='market-menu-asset-p_bounds_up', value=Asset_dict['p_bounds_up'], type='number', step='1', style={'width':'98%'})
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                        html.Div([
-                                html.Div(['Lower bound:'], style={'display':'table-cell'}),
-                                html.Div([
-                                        dcc.Input( id='market-menu-asset-p_bounds_low', value=Asset_dict['p_bounds_low'], type='number', step='1', style={'width':'98%'})
-                                        ], style={'display':'table-cell'}),
-                                ], style={'display':'table-row'}),
-                    ], style={'display':'table','width':'100%'}),
-                    html.Div([],id='market-menu-asset-void')
-                    ])
-                
-                            
+            return 'Wrong file format.'
     
-    
-    
-    
-    
-    
-    
-    #%% Market tab -- graph layout
-    
+    def VerifyMarketGraphFormat(self,NewMarket=None):
+        output = False
+        if NewMarket is not None:
+            self.default_vertex_attributes = ['ID', 'Type', 'AssetsNum', 'Assets', 'Partners', 'Preferences', 'Community', 'CommPref', 'CommGoal', 'name']
+            if set(NewMarket.vs.attributes())==set(self.default_vertex_attributes) and 'weight' in NewMarket.es.attributes():
+                obj = 0
+                cnt = 0
+                def_list = set([key for key, data_list in self.default_asset.items()])
+                for i in range(len(NewMarket.vs)):
+                    obj += len(NewMarket.vs[i]['Assets'])
+                    for j in range(len(NewMarket.vs[i]['Assets'])):
+                        if set([key for key, data_list in NewMarket.vs[i]['Assets'][j].items()]) == def_list:
+                            cnt += 1
+                if cnt==obj:
+                    output = True
+        return output
     
