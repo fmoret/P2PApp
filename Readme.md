@@ -6,10 +6,10 @@ The purpose of this app is to ...
 
 The following points will/need to be developed:
 - Market tab:
-    - Implement the function deleting assets/agents/managers/communities
     - Improvement of graph plot
     - Interaction between graph plot and side menu
-    - Test case saving
+    - Implement Open, New actions
+    - Implement Link option of Add, Modify, Delete actions
 - Simulation tab:
     - Implement simulation options
     - Test case saving
