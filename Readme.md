@@ -8,7 +8,7 @@ The following points will/need to be developed:
 - Market tab:
     - Improvement of graph plot
     - Interaction between graph plot and side menu
-    - Implement Link option of Add, Modify, Delete actions
+    - Implement Link option in Add, Modify, Delete actions
 - Simulation tab:
     - Implement simulation options
     - Test case saving
