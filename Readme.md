@@ -37,6 +37,10 @@ $ pip install dash dash-renderer dash-core-components==0.13.0-rc5 dash-html-comp
 
 # To start the web based app
 
+To start the app on Windows you can double-click on the batch file named "start.bat".
+
+The app can also be launched with the following steps:
+
 - Launch python terminal
 - Go to the folder homing app's python files using
 ```sh
