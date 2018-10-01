@@ -8,38 +8,39 @@ The following points will/need to be developed:
 - Market tab:
     - Improvement of graph plot
     - Interaction between graph plot and side menu
-    - Implement Link option in Add, Modify, Delete actions
 - Simulation tab:
-    - Implement simulation options
-    - Test case saving
-    - Interaction with simulation code
-    - Plot of simulation progression and of results
-    - Results saving
+    - Implementation of other simulation options
+    - Plot of graph through simulation progress
+    - Save results
     - Deployment on a High Power Computing (HPC) such as on Amazon Web Services or DTU's HPC (optional)
-    - Report generation: from results plot to PDF file (optional)
+    - Report generation: 
+        - Show relevant results
+        - create PDF from these results (optional)
 
 # Required packages
 
 To use this web based app the following python packages are required:
 - dash
 - dash-renderer 
-- dash-core-components (v. 0.13.0-rc5)
+- dash-core-components 
 - dash-html-components 
 - plotly
-- python-igraph
+- igraph
 - cairocffi
+- pandas
+- numpy
+- os
+- Gurobi
+- time
+- copy
 
 To install them go to python terminal and enter the command:
 ```sh
-$ pip install dash dash-renderer dash-core-components==0.13.0-rc5 dash-html-components plotly python-igraph cairocffi
+$ pip install dash dash-renderer dash-core-components dash-html-components plotly igraph cairocffi
 ```
 (Note that you might need to launch the terminal in administrator mode to be able to install them.)
 
 # To start the web based app
-
-To start the app on Windows you can double-click on the batch file named "start.bat".
-
-The app can also be launched with the following steps:
 
 - Launch python terminal
 - Go to the folder homing app's python files using
