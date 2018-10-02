@@ -32,9 +32,9 @@ app.config['suppress_callback_exceptions'] = True
 app.layout = html.Div([
     #html.Div(['Project: Delta']),
     dcc.Tabs(
-        tabs=[
-            {'label': 'Market network', 'value': 1},
-            {'label': 'Simulation', 'value': 2}
+        children=[
+            dcc.Tab(label= 'Market network', value= 1),
+            dcc.Tab(label= 'Simulation', value= 2)
         ],
         value=1,
         id='tabs'
