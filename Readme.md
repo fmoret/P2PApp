@@ -29,10 +29,7 @@ To use this web based app the following python packages are required:
 - cairocffi
 - pandas
 - numpy
-- os
 - Gurobi
-- time
-- copy
 
 To install them go to python terminal and enter the command:
 ```sh
