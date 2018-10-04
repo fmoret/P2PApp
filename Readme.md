@@ -5,13 +5,26 @@ The purpose of this app is to ...
 # App setup
 
 To setup the app launch the "create_update_environment.bat" file.
-(Note that you might need to launch it via your python terminal.)
+(Note that you might need to launch it via the python terminal.)
+
+At the request
+```sh
+Insert gurobi path ...
+```
+you should answer
+```sh
+Insert=$YourGurobiPath
+```
+For example:
+```sh
+Insert=C:\gurobi752\win64
+```
 
 # App start-up
 
 You only need to launch the "start.bat" file.
 
-Your terminal should show the following reply of Dash's local server:
+The terminal should show the following reply of Dash's local server:
 ```sh
  * Restarting with stat
  * Debugger is active!
