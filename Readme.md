@@ -41,7 +41,8 @@ The following points will/need to be developed:
     - Interaction between graph plot and side menu
 - Simulation tab:
     - Implement other simulation types
-    - Improve graph plot of simulation progress
+    - Save simulation parameters
+    - Improve graph plot
     - Save results
     - Deployment on a High Power Computing (HPC) such as on Amazon Web Services or DTU's HPC (optional)
     - Report generation: 
