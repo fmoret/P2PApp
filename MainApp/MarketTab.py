@@ -5,8 +5,8 @@
 
 import dash_core_components as dcc
 import dash_html_components as html
-from . import MGraph
-from . import DashTabs
+from .MGraph import MGraph
+from .DashTabs import DashTabs
 import os
 import pandas as pd
 import numpy as np

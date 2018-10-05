@@ -8,7 +8,6 @@ Created on Wed Sep 26 11:17:06 2018
 #import datetime
 import dash_core_components as dcc
 import dash_html_components as html
-from loremipsum import get_sentences
 import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.figure_factory as ff

@@ -14,8 +14,8 @@ from igraph import *
 import os
 import pandas as pd
 import numpy as np
-from . import MGraph
-from . import Prosumer
+from .MGraph import MGraph
+from .Prosumer import Prosumer
 
 class Simulator:
     def __init__(self): 

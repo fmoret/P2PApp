@@ -10,8 +10,8 @@ from dash.dependencies import Event, Output, Input, State
 import dash_core_components as dcc
 import dash_html_components as html
 
-from . import SimulationTab
-from . import MarketTab
+from .SimulationTab import SimulationTab
+from .MarketTab import MarketTab
 SimTab = SimulationTab()
 MarketTab = MarketTab()
 
@@ -33,7 +33,7 @@ layout = html.Div([
             ]
         ),
     html.Div(id='tab-output'),
-    html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
+    #html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
 ], style={
     'width': '98%',
     'fontFamily': 'Sans-Serif',

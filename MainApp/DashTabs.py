@@ -6,8 +6,8 @@
 #import datetime
 import dash_core_components as dcc
 import dash_html_components as html
-from . import MGraph
-from . import Simulator
+from .MGraph import MGraph
+from .Simulator import Simulator
 
 class DashTabs:
     def __init__(self,Market=None,Optimizer=None):

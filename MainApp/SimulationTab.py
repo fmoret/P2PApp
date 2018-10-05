@@ -5,7 +5,7 @@
 
 import dash_core_components as dcc
 import dash_html_components as html
-from . import DashTabs
+from .DashTabs import DashTabs
 
 
 class SimulationTab(DashTabs):
