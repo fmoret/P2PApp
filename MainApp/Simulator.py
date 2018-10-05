@@ -409,11 +409,11 @@ class Simulator:
         if n_save is not None and n_save!=self.n_clicks_results_save:
             self.n_clicks_results_save = n_save
             self.results_saved = True
-            return 'save'
+            return 'Save (soon)'
         elif n_report is not None and n_report!=self.n_clicks_results_report:
             self.n_clicks_results_report = n_report
             self.results_report = True
-            return 'report'
+            return 'Report (soon)'
         elif n_new is not None and n_new!=self.n_clicks_results_new:
             self.n_clicks_results_new = n_new
             if not self.results_report or not self.results_saved:

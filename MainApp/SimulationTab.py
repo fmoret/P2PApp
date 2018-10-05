@@ -265,7 +265,7 @@ class SimulationTab(DashTabs):
                         html.Div([], style={'display':'table-cell','width':'30%'}),
                     ], style={'display':'table-row'}),
                     html.Div([
-                            html.Div([ html.Button(children='Save parameters', id = 'simulation-save-button', type='submit', n_clicks=self.save_clicks)
+                            html.Div([ html.Button(children='Save parameters (soon)', id = 'simulation-save-button', type='submit', n_clicks=self.save_clicks)
                                     ], style={'display':'table-cell'}),
                             html.Div([]),
                             html.Div([ html.Button(children='Run simulation', id = 'simulation-launch-button', type='submit', n_clicks=self.launch_clicks)
