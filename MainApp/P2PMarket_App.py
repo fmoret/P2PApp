@@ -25,27 +25,19 @@ MarketTab = MarketTab()
 #from collections import deque
 #from loremipsum import get_sentences
 
-layout = html.Div([
-    dcc.Tabs(id="tabs", value='Market',
-             children=[
-                dcc.Tab(label='Market', value='Market'),
-                dcc.Tab(label='Simulation', value='Simulation'),
+def ShowGeneral_App():
+    return [
+            dcc.Tabs(id="tabs", value='Market', style={'display':'block'},
+                     children=[
+                             dcc.Tab(label='Market', value='Market'),
+                             dcc.Tab(label='Simulation', value='Simulation'),
+                             ]
+                     ),
+            html.Div(id='tab-output'),
+#            html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
             ]
-        ),
-    html.Div(id='tab-output'),
-    #html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
-], style={
-    'width': '98%',
-    'fontFamily': 'Sans-Serif',
-    'margin-left': 'auto',
-    'margin-right': 'auto'
-})
 
-
-#%% Callbacks
-#%% General Tab layout
-@app.callback(Output('tab-output', 'children'), [Input('tabs', 'value')])
-def voidfct_GeneralTab(tab_id):
+def ShowGeneral_Tabs(tab_id):
     if tab_id=='Market':
         MarketTab.Optimizer = SimTab.Optimizer
         return MarketTab.ShowTab()
@@ -55,6 +47,22 @@ def voidfct_GeneralTab(tab_id):
         return SimTab.ShowTab()
     else:
         return []
+
+layout = html.Div(ShowGeneral_App(), 
+                id='MainApp-container',
+                style={
+                    'width': '98%',
+                    'fontFamily': 'Sans-Serif',
+                    'margin-left': 'auto',
+                    'margin-right': 'auto'
+                }
+            )
+
+#%% Callbacks
+#%% General Tab layout
+@app.callback(Output('tab-output', 'children'), [Input('tabs', 'value')])
+def voidfct_ShowGeneral_Tabs(tab_id):
+    return ShowGeneral_Tabs(tab_id)
 
 @app.callback(Output('market-graph-graph', 'children'),events=[Event('market-graph-interval', 'interval')])
 def voidfct_IntervalGraphUpdate():
@@ -336,6 +344,13 @@ def voidfct_MenuRefresh(n_clicks):
     return SimTab.MenuRefresh(n_clicks)
 
 #%% Simulation -- Running in progress
+# Simulator -- launch menu
+@app.callback(Output('tabs', 'style'),[Input('tabs-show-trigger', 'n_clicks')],[State('tabs-show-trigger', 'children')])
+def voidfct_Tabs_Style(n_clicks,show):
+    if show:
+        return {'display':'block'}
+    else:
+        return {'display':'none'}
 
 # Simulator -- launch menu
 @app.callback(Output('tab-output-simulation', 'children'),[Input('simulation-trigger', 'n_clicks')])
@@ -367,8 +382,8 @@ def voidfct_Opti_Start(n_clicks):
 def voidfct_Graph_Progress():
     return SimTab.Optimizer.ShowMarketGraph(True)
 
-# Simulator -- stop update graph
-@app.callback(Output('simulator-graph-refresh', 'children'),[Input('simulator-graph-end', 'n_clicks')])
-def voidfct_Opti_Start(n_clicks):
-    return SimTab.Optimizer.Graph_Refresh(n_clicks)
+# Simulator -- stop simulation
+@app.callback(Output('simulator-refresh', 'children'),[Input('simulator-stop-trigger', 'n_clicks')])
+def voidfct_ShowResults(n_clicks):
+    return SimTab.Optimizer.ShowResults(n_clicks)
 

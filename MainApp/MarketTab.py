@@ -71,6 +71,8 @@ class MarketTab(DashTabs):
     def ShowTab(self):
         if self.Optimizer.simulation_on:
             return self.Simulation_on_Tab()
+        elif self.Optimizer.simulation_message:
+            return self.Optimizer.ShowResults()
         else:
             graph_data = html.Div([
                     self.ShowMarketGraph(True,True),

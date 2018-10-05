@@ -8,11 +8,11 @@ Created on Thu Sep 27 15:56:13 2018
 import time
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.plotly as py
-import plotly.graph_objs as go
-from igraph import *
-import os
-import pandas as pd
+#import plotly.plotly as py
+#import plotly.graph_objs as go
+#from igraph import *
+#import os
+#import pandas as pd
 import numpy as np
 from .MGraph import MGraph
 from .Prosumer import Prosumer
@@ -22,11 +22,14 @@ class Simulator:
         self.simulation_on = False
         self.simulation_on_tab = False
         self.optimizer_on = False
+        self.simulation_message = False
         self.init_test()
         self.n_clicks_tab = 0
         self.verbose = True
-        self.Interval = 2
+        self.timeout = 3600 # in s
+        self.Interval = 3 # in s
         self.ShareWidth()
+        self.full_progress = []
         # Default optimization parameters
         self.algorithm = 'Decentralized'
         self.target = 'CPU'
@@ -40,14 +43,16 @@ class Simulator:
         self.residual_dual = 1e-4
         self.communications = 'Synchronous'
         self.show = True
-        self.progress = 'Full'
+        self.progress = 'Partial'
         # Optimization model
         self.players = {}
+        self.Trades = 0
         return
     
     def init_test(self):
         if self.simulation_on and self.simulation_on_tab:
-            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
+#            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
+            self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
             self.MGraph.BuildGraphOfMarketGraph(True)
             self.SGraph = self.MGraph
         return
@@ -133,70 +138,30 @@ class Simulator:
         self.SGraph = self.MGraph
         return
     
-    #%% Message management
-    def Simulation_on_Message(self):
-        if self.simulation_on is True or self.simulation_on==1:
-            return 'Simulation running, please wait ...'
-        elif self.simulation_on==2:
-            return 'Simulation results not saved ...'
-        elif self.simulation_on<0:
-            return 'Simulation error ...'
-        else:
-            return ''
-    
-    @classmethod 
-    def ErrorMessage(cls,err_code=False):
-        if err_code is True or err_code==1:
-            message = 'Simulation running, please wait ...'
-        elif err_code==2:
-            message = 'Simulation results not saved ...'
-        elif err_code<0:
-            message = 'Simulation error ...'
-        else:
-            message = 'Simulation unstarted ...'
-        return html.Div([dcc.Markdown('**'+ message +'**')])
-    
-#    def ShowProgress_test(self):
-#        if self.simulation_on is True or self.simulation_on==1:
-#            message = 'Simulation running, please wait ...'
-#        elif self.simulation_on==2:
-#            message = 'Simulation results not saved ...'
-#        elif self.simulation_on<0:
-#            message = 'Simulation error ...'
-#        else:
-#            message = ''
-#        return html.Div([dcc.Markdown('**'+ message +'**')])
-    
+    #%% Progress management
     def ShowProgress(self,In=True):
-        if self.Parameters_Test():
+        test, out = self.Parameters_Test()
+        if test:
             bottom_data = []
             if self.progress=='Full':
                 graph_data = self.Graph_Progress(In)
             else:
                 graph_data = self.ShowMarketGraph(In)
             menu_data = self.Progress_Main()
-            return self.MenuTab(menu_data,graph_data,bottom_data)
+            return html.Div([
+                    html.Div([html.Button(children=False, id = 'tabs-show-trigger', type='submit', n_clicks=0)],style={'display':'none'}),
+                    self.MenuTab(menu_data,graph_data,bottom_data)
+                    ],id='simulator-refresh')
         else:
-            return self.ErrorMessage(self.simulation_on)
-    
-    @classmethod 
-    def ProgressMessage(cls,err_code=False):
-        if err_code is True or err_code==1:
-            message = 'Simulation running, please wait ...'
-        elif err_code==2:
-            message = 'Simulation results not saved ...'
-        elif err_code<0:
-            message = 'Simulation error ...'
-        else:
-            message = 'Simulation unstarted ...'
-        return html.Div([dcc.Markdown('**'+ message +'**')])
-    
+            return out
     
     #%% Progress display -- Terminal
     def Progress_Main(self):
-        return html.Div(self.Progress_Start(),id='simulator-main')
+        self.full_progress = []
+        return html.Div(self.Progress_Start())
     
     def ProgressMessage(self,next_message='',message=[]):
+        self.full_progress.extend(message)
         return html.Div([
                 html.Div(message),
                 html.Div([
@@ -213,6 +178,8 @@ class Simulator:
             return self.Progress_Model()
         else:
             message = [
+                    html.Br(),
+                    html.Div([html.B(['Optimizer feedbacks:'],style={'text-decoration':'underline'})]),
                     html.Div([html.B('Init ...')]),
                     html.Div(['Initializing parameters ...']),
                     ]
@@ -258,8 +225,8 @@ class Simulator:
         else:
             return html.Div([self.SGraph.BuildGraphOfMarketGraph(update)],id='simulator-graph-graph')  
     
-    def Graph_Progress(self,In=True):
-        return html.Div(self.Graph_Refresh(None,In),id='simulator-graph-refresh')
+    def Graph_Progress(self,In=True,click=None):
+        return html.Div(self.Graph_Refresh(click,In),id='simulator-graph-refresh')
     
     def Graph_Refresh(self,n_clicks=None,In=True):
         if n_clicks is None:
@@ -283,6 +250,7 @@ class Simulator:
         self.prim = float("inf")
         self.dual = float("inf")
         self.Price_avg = 0
+        self.simulation_time = 0
         self.opti_progress = [self.ProgressTable]
         return
     
@@ -302,7 +270,7 @@ class Simulator:
             self.iteration_last = self.iteration
             self.opti_progress.extend([
                             html.Div([
-                                    html.Div([str(self.iteration)], style={'display':'table-cell'}),
+                                    html.Div([f'{self.iteration}'], style={'display':'table-cell'}),
                                     html.Div([f'{self.SW:.3g}'], style={'display':'table-cell'}),
                                     html.Div([f'{self.prim:.3g}'], style={'display':'table-cell'}),
                                     html.Div([f'{self.dual:.3g}'], style={'display':'table-cell'}),
@@ -310,18 +278,20 @@ class Simulator:
                                     ], style={'display':'table-row'})
                             ])
         if out:
-            self.simulation_time = time.clock()-self.start_sim
-            return html.Div([
-                    html.Div(self.opti_progress, style={'display':'table','width':'100%'}),
-                    html.Div([f'Total simulation time: {self.simulation_time:.1f} s']),
-                    html.Div([html.Button(children='', id = 'simulator-graph-end', type='submit', n_clicks=self.n_clicks_tab)],style={'display':'none'}),
-                    html.Div(['Optimization finished'])
+            self.full_progress.extend([
+                        html.Div(self.opti_progress, style={'display':'table','width':'100%'}),
+                        html.Div([f'Total simulation time: {self.simulation_time:.1f} s']),
+                        html.Div([html.Button(children='', id = 'simulator-graph-end', type='submit', n_clicks=self.n_clicks_tab)],style={'display':'none'}),
+                        html.Div(['Optimization stopped.']),
+                        html.Br(),
+                        self.ErrorMessages()
                     ])
+            return html.Div([html.Button(children='', id = 'simulator-stop-trigger', type='submit', n_clicks=self.n_clicks_tab)],style={'display':'none'})
         else:
             return html.Div([
                     html.Div(self.opti_progress, style={'display':'table','width':'100%'}),
                     html.Div(['...']),
-                    html.Div([f'Running time: {time.clock()-self.start_sim:.1f} s']),
+                    html.Div([f'Running time: {self.simulation_time:.1f} s']),
                     html.Div([
                             html.Button(children='', id = 'simulator-sim-trigger', type='submit', n_clicks=self.n_clicks_tab)
                             ],style={'display':'none'})
@@ -332,6 +302,7 @@ class Simulator:
             if not self.optimizer_on:
                 self.optimizer_on = True
                 self.start_sim = time.clock()
+                self.simulation_time = 0
             lapsed = 0
             start_time = time.clock()
             while (self.prim>self.residual_primal or self.dual>self.residual_dual) and self.iteration<self.maximum_iteration and lapsed<=self.Interval:
@@ -341,15 +312,16 @@ class Simulator:
                     temp[:,i] = self.players[i].optimize(self.Trades[i,:])
                     self.Prices[:,i][self.part[i,:].nonzero()] = self.players[i].y
                 self.Trades = np.copy(temp)
-                lapsed = time.clock()-start_time
                 self.prim = sum([self.players[i].Res_primal for i in range(self.nag)])
                 self.dual = sum([self.players[i].Res_dual for i in range(self.nag)])
+                lapsed = time.clock()-start_time
             
             # Displayed data
-            self.Price_avg = mean(self.Prices[self.Prices!=0])
+            self.simulation_time += lapsed
+            self.Price_avg = self.Prices[self.Prices!=0].mean()
             self.SW = sum([self.players[i].SW for i in range(self.nag)])
             
-            if self.prim<=self.residual_primal or self.iteration>=self.maximum_iteration:
+            if self.Opti_End_Test():
                 self.Opti_LocDec_Stop()
                 return self.Opti_LocDec_State(True)
             else:
@@ -357,6 +329,57 @@ class Simulator:
     
     def Opti_LocDec_Stop(self):
         self.optimizer_on = False
-#        self.simulation_on = False
+        self.simulation_on_tab = False
+        self.simulation_on = False
         return
+    
+    def Opti_End_Test(self):
+        if self.prim<=self.residual_primal and self.dual<=self.residual_dual:
+            self.simulation_message = 1
+        elif self.iteration>=self.maximum_iteration:
+            self.simulation_message = -1
+        elif self.simulation_time>=self.timeout:
+            self.simulation_message = -2
+        else:
+            self.simulation_message = 0
+        return self.simulation_message
+    
+    #%% Results display
+    def ErrorMessages(self):
+        errors=[]
+        if self.simulation_message==1:
+            errors.extend([
+                    html.Div([f'Simulation converged after {self.iteration} iterations']),
+                    html.Div([f'in {self.simulation_time:.1f} seconds.']),
+                    html.Div([f'The total social welfare is of {self.SW:.0f} $']),
+                    html.Div([f'The total amount of power traded is {abs(self.Trades).sum()/2:.0f} W']),
+                    html.Div([f'with an average trading price of {self.Price_avg:.2f} $/Wh']),
+                    ])
+        else:
+            errors.append( html.Div([html.B("Simulation did not converge.")]) )
+            if self.simulation_message==-1:
+                errors.append( html.Div(["Maximum number of iterations has been reached."]) )
+            elif self.simulation_message==-2:
+                errors.append( html.Div(["Simulation time exceeded timeout."]) )
+            else:
+                errors.append( html.Div(["Something went wrong."]) )
+        return html.Div([
+                html.Div([html.B(['Optimizer messages:'],style={'text-decoration':'underline'})]),
+                html.Div(errors)
+                ])
+    
+    def ShowResults(self,click=None):
+        bottom_data = []
+        graph_data = self.ShowMarketGraph(True)
+        menu_data = html.Div([
+                        html.Div(self.full_progress),
+                        html.Hr(),html.Br(),
+                        html.Div(self.ShowResults_Options(),id='simulator-stopped-decision')
+                    ],id='simulator-refresh-sub')
+        return self.MenuTab(menu_data,graph_data,bottom_data)
+    
+    def ShowResults_Options(self):
+        return ['What do you want to do now?']
+    
+    
     

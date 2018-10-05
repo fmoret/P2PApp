@@ -22,6 +22,8 @@ class SimulationTab(DashTabs):
     def ShowTab(self):
         if self.Optimizer.simulation_on:
             return self.Simulation_on_Tab()
+        elif self.Optimizer.simulation_message:
+            return self.Optimizer.ShowResults()
         else:
             graph_data = html.Div([
                     self.ShowMarketGraph(False),
@@ -322,6 +324,7 @@ class SimulationTab(DashTabs):
             return self.Simulation_on_Tab()
         elif cancel is not None and cancel!=self.cancel_clicks:
             self.cancel_clicks = cancel
+            self.Optimizer.simulation_on = False
             return html.Div([html.Button(children='', id = 'simulation-menu-refresh-trigger', type='submit', n_clicks=self.cancel_clicks)],style={'display':'none'})
         else:
             return []

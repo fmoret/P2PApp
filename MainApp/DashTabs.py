@@ -113,11 +113,15 @@ class DashTabs:
     
     #%% Running Simulation -- Progress display
     def Simulation_on_Tab(self,n_clicks=None):
-        if self.Optimizer.simulation_on_tab or (n_clicks is not None and self.n_clicks_tab!=n_clicks):
+#        if self.Optimizer.simulation_on_tab or (n_clicks is not None and self.n_clicks_tab!=n_clicks):
+        if self.Optimizer.simulation_on_tab or n_clicks is not None:
             return self.Optimizer.ShowProgress(False)
         else:
             self.Optimizer.simulation_on_tab = True
-            return html.Div([html.Button(children='Show progress', id = 'simulation-trigger', type='submit', n_clicks=self.n_clicks_tab)])
+            return html.Div([
+                    html.Button(children='Show progress', id = 'simulation-trigger', type='submit', n_clicks=self.n_clicks_tab)],
+                    style={'display':'none'}
+                    )
     
     
     
