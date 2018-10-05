@@ -14,6 +14,7 @@ import dash_html_components as html
 #import os
 #import pandas as pd
 import numpy as np
+import copy
 from .MGraph import MGraph
 from .Prosumer import Prosumer
 
@@ -54,7 +55,7 @@ class Simulator:
 #            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
             self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
             self.MGraph.BuildGraphOfMarketGraph(True)
-            self.SGraph = self.MGraph
+            self.SGraph = copy.deepcopy(self.MGraph)
         return
     
     def ShareWidth(self,menu=None,graph=None):
@@ -133,9 +134,9 @@ class Simulator:
     #%% Graph management
     def LoadMGraph(self,MGraph):
         self.MGraph = MGraph
-        #self.MGraph.save('temp/graph_presim.pyp2p', format='picklez')
-        self.MGraph.Save(self.MGraph,'temp/graph_presim.pyp2p', format='picklez')
-        self.SGraph = self.MGraph
+        self.MGraph.save('temp/graph_presim.pyp2p', format='picklez')
+#        self.MGraph.Save(self.MGraph,'temp/graph_presim.pyp2p', format='picklez')
+        self.SGraph = copy.deepcopy(self.MGraph)
         return
     
     #%% Progress management
@@ -358,7 +359,7 @@ class Simulator:
         else:
             errors.append( html.Div([html.B("Simulation did not converge.")]) )
             if self.simulation_message==-1:
-                errors.append( html.Div(["Maximum number of iterations has been reached."]) )
+                errors.append( html.Div(["Maximum number of iterations reached."]) )
             elif self.simulation_message==-2:
                 errors.append( html.Div(["Simulation time exceeded timeout."]) )
             else:
@@ -379,7 +380,82 @@ class Simulator:
         return self.MenuTab(menu_data,graph_data,bottom_data)
     
     def ShowResults_Options(self):
-        return ['What do you want to do now?']
+#        return ['What do you want to do now?']
+        self.n_clicks_results_save = 0
+        self.n_clicks_results_report = 0
+        self.n_clicks_results_new = 0
+        self.results_saved = False
+        self.results_report = False
+        return html.Div([
+                html.Div(['Do you want to:']),
+                html.Div([
+                        html.Div([
+                                html.Button(children='Save results', id = 'results-option-save-button', 
+                                            type='submit', n_clicks=self.n_clicks_results_save)
+                                ], style={'display':'table-cell','width':'33%','margin':'auto'}),
+                        html.Div([
+                                html.Button(children='Create a report', id = 'results-option-report-button', 
+                                            type='submit', n_clicks=self.n_clicks_results_report)
+                                ], style={'display':'table-cell','width':'33%','margin':'auto'}),
+                        html.Div([
+                                html.Button(children='Do another simulation', id = 'results-option-new-button', 
+                                            type='submit', n_clicks=self.n_clicks_results_new)
+                                ], style={'display':'table-cell','width':'33%','margin':'auto'}),
+                        ], style={'display':'table','width':'100%'}),
+                html.Div(id='results-options-choice')
+                ])
     
+    def ShowResults_OptionsConfirm(self,n_save=None,n_report=None,n_new=None):
+        if n_save is not None and n_save!=self.n_clicks_results_save:
+            self.n_clicks_results_save = n_save
+            self.results_saved = True
+            return 'save'
+        elif n_report is not None and n_report!=self.n_clicks_results_report:
+            self.n_clicks_results_report = n_report
+            self.results_report = True
+            return 'report'
+        elif n_new is not None and n_new!=self.n_clicks_results_new:
+            self.n_clicks_results_new = n_new
+            if not self.results_report or not self.results_saved:
+                self.n_clicks_cancel = 0
+                self.n_clicks_confirm = 0
+                return html.Div([
+                        dcc.Markdown('**This action will erase all results.**'),
+                        html.Div(['Do you confirm this action?']),
+                        html.Div([
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([
+                                    html.Button(children='Cancel', id = 'results-option-cancel-button', 
+                                                type='submit', n_clicks=self.n_clicks_cancel)
+                                    ], style={'display':'table-cell','width':'33%','margin':'auto'}),
+                            html.Div([], style={'display':'table-cell','width':'10%'}),
+                            html.Div([
+                                    html.Button(children='Confirm', id = 'results-option-confirm-button', 
+                                                type='submit', n_clicks=self.n_clicks_confirm)
+                                    ], style={'display':'table-cell','width':'33%','margin':'auto'}),
+                            ], style={'display':'table','width':'100%'}),
+                        html.Div(id='results-options-choice-confirm')
+                        ],id='results-options-choice-refresh')
+            else:
+                return self.Exit_Simulator()
+        else:
+            return ''
+    
+    def ShowResults_OptionsConfirmed(self,n_cancel=None,n_confirm=None):
+        if n_cancel is not None and n_cancel!=self.n_clicks_cancel:
+            self.n_clicks_cancel = n_cancel
+            return html.Div([ html.Button(children='', id='results-option-cancel-trigger', type='submit', n_clicks=0) ],style={'display':'none'})
+        elif n_confirm is not None and n_confirm!=self.n_clicks_confirm:
+            return self.Exit_Simulator()
+        else:
+            return ''
+    
+    def Exit_Simulator(self):
+        self.simulation_message = False
+        self.SGraph = copy.deepcopy(self.MGraph)
+        self.Opti_LocDec_Init()
+        return html.Div([
+                html.Button(children='', id='simulator-exit-trigger', type='submit', n_clicks=0)
+                ],style={'display':'none'})
     
     

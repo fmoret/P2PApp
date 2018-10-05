@@ -25,16 +25,18 @@ MarketTab = MarketTab()
 #from collections import deque
 #from loremipsum import get_sentences
 
-layout = html.Div([
-        dcc.Tabs(id="tabs", value='Market', style={'display':'block'},
-                 children=[
-                         dcc.Tab(label='Market', value='Market'),
-                         dcc.Tab(label='Simulation', value='Simulation'),
-                         ]
-                 ),
-        html.Div(id='tab-output'),
-#        html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
-        ], 
+def MainApp_Show(tab_id='Market'):
+    return [dcc.Tabs(id="tabs", value=tab_id, style={'display':'block'},
+                     children=[
+                             dcc.Tab(label='Market', value='Market'),
+                             dcc.Tab(label='Simulation', value='Simulation'),
+                             ]
+                     ),
+            html.Div(id='tab-output'),
+#            html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
+            ]
+
+layout = html.Div(MainApp_Show(), 
         id='MainApp-container',
         style={
             'width': '98%',
@@ -382,4 +384,29 @@ def voidfct_Graph_Progress():
 @app.callback(Output('simulator-refresh', 'children'),[Input('simulator-stop-trigger', 'n_clicks')])
 def voidfct_ShowResults(n_clicks):
     return SimTab.Optimizer.ShowResults(n_clicks)
+
+# Simulator -- results option
+@app.callback(Output('results-options-choice', 'children'),[
+        Input('results-option-save-button', 'n_clicks'),
+        Input('results-option-report-button', 'n_clicks'),
+        Input('results-option-new-button', 'n_clicks')])
+def voidfct_ShowResults(n_save,n_report,n_new):
+    return SimTab.Optimizer.ShowResults_OptionsConfirm(n_save,n_report,n_new)
+
+# Simulator -- confirm exit simulation
+@app.callback(Output('results-options-choice-confirm', 'children'),[
+        Input('results-option-cancel-button', 'n_clicks'),
+        Input('results-option-confirm-button', 'n_clicks')])
+def voidfct_Exit_Simulator(n_cancel,n_confirm):
+    return SimTab.Optimizer.ShowResults_OptionsConfirmed(n_cancel,n_confirm)
+
+# Simulator -- cancel exit simulation
+@app.callback(Output('results-options-choice-refresh', 'children'),[Input('results-option-cancel-trigger', 'n_clicks')])
+def voidfct_Exit_Simulator(n_clicks):
+    return ''
+
+# Simulator -- exit simulation
+@app.callback(Output('MainApp-container', 'children'),[Input('simulator-exit-trigger', 'n_clicks')])
+def voidfct_Exit_Simulator(n_clicks):
+    return MainApp_Show('Simulation')
 
