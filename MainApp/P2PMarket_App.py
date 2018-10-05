@@ -25,20 +25,32 @@ MarketTab = MarketTab()
 #from collections import deque
 #from loremipsum import get_sentences
 
-def ShowGeneral_App():
-    return [
-            dcc.Tabs(id="tabs", value='Market', style={'display':'block'},
-                     children=[
-                             dcc.Tab(label='Market', value='Market'),
-                             dcc.Tab(label='Simulation', value='Simulation'),
-                             ]
-                     ),
-            html.Div(id='tab-output'),
-#            html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
-            ]
+layout = html.Div([
+        dcc.Tabs(id="tabs", value='Market', style={'display':'block'},
+                 children=[
+                         dcc.Tab(label='Market', value='Market'),
+                         dcc.Tab(label='Simulation', value='Simulation'),
+                         ]
+                 ),
+        html.Div(id='tab-output'),
+#        html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
+        ], 
+        id='MainApp-container',
+        style={
+            'width': '98%',
+            'fontFamily': 'Sans-Serif',
+            'margin-left': 'auto',
+            'margin-right': 'auto'
+        }
+    )
 
-def ShowGeneral_Tabs(tab_id):
+
+#%% Callbacks
+#%% General Tab layout
+@app.callback(Output('tab-output', 'children'), [Input('tabs', 'value')])
+def voidfct_Tabs(tab_id):
     if tab_id=='Market':
+#        MarketTab.MGraph = SimTab.MGraph
         MarketTab.Optimizer = SimTab.Optimizer
         return MarketTab.ShowTab()
     elif tab_id=='Simulation':
@@ -47,22 +59,6 @@ def ShowGeneral_Tabs(tab_id):
         return SimTab.ShowTab()
     else:
         return []
-
-layout = html.Div(ShowGeneral_App(), 
-                id='MainApp-container',
-                style={
-                    'width': '98%',
-                    'fontFamily': 'Sans-Serif',
-                    'margin-left': 'auto',
-                    'margin-right': 'auto'
-                }
-            )
-
-#%% Callbacks
-#%% General Tab layout
-@app.callback(Output('tab-output', 'children'), [Input('tabs', 'value')])
-def voidfct_ShowGeneral_Tabs(tab_id):
-    return ShowGeneral_Tabs(tab_id)
 
 @app.callback(Output('market-graph-graph', 'children'),events=[Event('market-graph-interval', 'interval')])
 def voidfct_IntervalGraphUpdate():
