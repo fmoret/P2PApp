@@ -100,7 +100,8 @@ class Simulator:
     
     #%% Parameters management
     def Parameters_Save(self):
-        message = [html.Div([dcc.Markdown('*Simulation parameters have been saved.*')])]
+#        message = [html.Div([dcc.Markdown('*Simulation parameters have been saved. (Option activated soon)*')])]
+        message = [html.Div([dcc.Markdown('*Option unavailable yet.*')])]
         return message
     
     def Parameters_Test(self):
