@@ -16,7 +16,7 @@ import dash_html_components as html
 import numpy as np
 import copy
 from .MGraph import MGraph
-from .Prosumer import Prosumer
+from .Prosumer import Prosumer, Manager
 
 class Simulator:
     def __init__(self): 
@@ -24,6 +24,7 @@ class Simulator:
         self.simulation_on_tab = False
         self.optimizer_on = False
         self.simulation_message = False
+        self.Stopped = False
         self.init_test()
         self.n_clicks_tab = 0
         self.verbose = True
@@ -32,6 +33,9 @@ class Simulator:
         self.ShareWidth()
         self.full_progress = []
         # Default optimization parameters
+        self.Add_Commission_Fees = 'Yes'
+        self.Commission_Fees_P2P = 0.01 # in $/kWh
+        self.Commission_Fees_Community = 0 # in $/kWh
         self.algorithm = 'Decentralized'
         self.target = 'CPU'
         self.location = 'local'
@@ -44,7 +48,7 @@ class Simulator:
         self.residual_dual = 1e-4
         self.communications = 'Synchronous'
         self.show = True
-        self.progress = 'Partial'
+        self.progress = 'Partial'#'Full'#
         # Optimization model
         self.players = {}
         self.Trades = 0
@@ -52,8 +56,8 @@ class Simulator:
     
     def init_test(self):
         if self.simulation_on and self.simulation_on_tab:
-#            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
-            self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
+            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
+#            self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
             self.MGraph.BuildGraphOfMarketGraph(True)
             self.SGraph = copy.deepcopy(self.MGraph)
         return
@@ -135,8 +139,8 @@ class Simulator:
     #%% Graph management
     def LoadMGraph(self,MGraph):
         self.MGraph = MGraph
-        self.MGraph.save('temp/graph_presim.pyp2p', format='picklez')
-#        self.MGraph.Save(self.MGraph,'temp/graph_presim.pyp2p', format='picklez')
+#        self.MGraph.save('temp/m_presim.pyp2p', format='picklez')
+        self.MGraph.Save(self.MGraph,'temp/presim.pyp2p', format='picklez')
         self.SGraph = copy.deepcopy(self.MGraph)
         return
     
@@ -205,7 +209,13 @@ class Simulator:
             return self.Opti_LocDec_State()
         else:
             message = [
-                    html.Div([html.B('Optimize ...')]),
+                    html.Div([
+                            html.Div([html.B('Optimize ...')], style={'display':'table-cell','width':'75%','vertical-align':'bottom'}),
+                            html.Div([
+                                    html.Button(children='Stop simulation', type='submit', id='simulator-stop-button', n_clicks=0)
+                                ], style={'display':'table-cell','width':'25%'}),
+                            html.Div(id='simulator-stop-button-hide', style={'display':'none'}),
+                        ], style={'display':'table','width':'100%'}),
                     html.Div([
                         self.ProgressTable,
                         html.Div([
@@ -261,13 +271,23 @@ class Simulator:
         pref = np.zeros(self.Trades.shape)
         for es in self.MGraph.es:
             part[es.source][es.target] = 1
-            pref[es.source][es.target] = es['weight']
+            if self.MGraph.vs[es.target]['ID'] in self.MGraph.vs[es.source]['Partners']:
+                pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_P2P,0)
+                if self.MGraph.vs[es.source]['Type']=='Manager' and self.MGraph.vs[es.source]['CommGoal']=='Lowest Importation':
+                    pref[es.source][es.target] += max(self.MGraph.vs[self.AgentID]['ImpFee'],0)
+            elif self.MGraph.vs[es.target]['ID'] in self.MGraph.vs[es.source]['Community']:
+                pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_Community,0)
+            else:
+                pref[es.source][es.target] = es['weight']
         for x in self.MGraph.vs:
-            self.players[x.index] = Prosumer(agent=x, partners=part[x.index], preferences=pref[x.index], rho=self.penaltyfactor)
+            if x['Type']=='Manager':
+                self.players[x.index] = Manager(agent=x, partners=part[x.index], preferences=pref[x.index], rho=self.penaltyfactor)
+            else:
+                self.players[x.index] = Prosumer(agent=x, partners=part[x.index], preferences=pref[x.index], rho=self.penaltyfactor)
         self.part = part
         return
     
-    def Opti_LocDec_State(self,out=False):
+    def Opti_LocDec_State(self,out=None):
         if self.iteration_last < self.iteration:
             self.iteration_last = self.iteration
             self.opti_progress.extend([
@@ -279,6 +299,8 @@ class Simulator:
                                     html.Div([f'{self.Price_avg:.2f}'], style={'display':'table-cell'}),
                                     ], style={'display':'table-row'})
                             ])
+        if out is None:
+            out = self.Opti_End_Test()
         if out:
             self.full_progress.extend([
                         html.Div(self.opti_progress, style={'display':'table','width':'100%'}),
@@ -307,7 +329,7 @@ class Simulator:
                 self.simulation_time = 0
             lapsed = 0
             start_time = time.clock()
-            while (self.prim>self.residual_primal or self.dual>self.residual_dual) and self.iteration<self.maximum_iteration and lapsed<=self.Interval:
+            while (self.prim>self.residual_primal or self.dual>self.residual_dual) and self.iteration<self.maximum_iteration and lapsed<=self.Interval and not self.Stopped:
                 self.iteration += 1
                 temp = np.copy(self.Trades)
                 for i in range(self.nag):
@@ -335,6 +357,11 @@ class Simulator:
         self.simulation_on = False
         return
     
+    def Button_Stop(self,click=None):
+        if click is not None and click!=0:
+            self.Stopped = True
+        return
+    
     def Opti_End_Test(self):
         if self.prim<=self.residual_primal and self.dual<=self.residual_dual:
             self.simulation_message = 1
@@ -342,6 +369,8 @@ class Simulator:
             self.simulation_message = -1
         elif self.simulation_time>=self.timeout:
             self.simulation_message = -2
+        elif self.Stopped:
+            self.simulation_message = -3
         else:
             self.simulation_message = 0
         return self.simulation_message
@@ -350,11 +379,26 @@ class Simulator:
     def ErrorMessages(self):
         errors=[]
         if self.simulation_message==1:
+            tot_trade = np.zeros(self.Trades.shape)
+            for es in self.MGraph.es:
+                if self.MGraph.vs[es.source]['Type']!='Manager':
+                    if self.MGraph.vs[es.target]['Type']=='Manager':
+                        tot_trade[es.source][es.target] = abs(self.Trades[es.source][es.target])
+                    else:
+                        tot_trade[es.source][es.target] = abs(self.Trades[es.source][es.target])/2
+            tot_prod = np.zeros(self.nag)
+            tot_cons = np.zeros(self.nag)
+            for i in range(self.nag):
+                prod,cons = self.players[i].production_consumption()
+                tot_prod[i] = prod
+                tot_cons[i] = cons
             errors.extend([
                     html.Div([f'Simulation converged after {self.iteration} iterations']),
                     html.Div([f'in {self.simulation_time:.1f} seconds.']),
                     html.Div([f'The total social welfare is of {self.SW:.0f} $']),
-                    html.Div([f'The total amount of power traded is {abs(self.Trades).sum()/2:.0f} W']),
+                    html.Div([f'The total amount of power exchanged is {tot_trade.sum():.0f} W']),
+                    html.Div([f'The total amount of power produced is {tot_prod.sum():.0f} W']),
+                    html.Div([f'The total amount of power consumed is {tot_cons.sum():.0f} W']),
                     html.Div([f'with an average trading price of {self.Price_avg:.2f} $/Wh']),
                     ])
         else:
@@ -363,6 +407,8 @@ class Simulator:
                 errors.append( html.Div(["Maximum number of iterations reached."]) )
             elif self.simulation_message==-2:
                 errors.append( html.Div(["Simulation time exceeded timeout."]) )
+            elif self.simulation_message==-3:
+                errors.append( html.Div(["Simulation stopped by user."]) )
             else:
                 errors.append( html.Div(["Something went wrong."]) )
         return html.Div([

@@ -97,14 +97,21 @@ def voidfct_AgentRefreshButton(n_clicks):
 def voidfct_AgentType(agent_type):
     return MarketTab.AgentType(agent_type)
 
-# Change in agent data (name, type, number of assets)
+# Change in agent data (name, number of assets)
 @app.callback(Output('market-menu-assets', 'children'),[
         Input('market-menu-agent-name', 'value'),
-        Input('market-menu-agent-commgoal', 'value'),
         Input('market-menu-agent-number-assets', 'value')
         ])
-def voidfct_AgentData(agent_name,comm_goal,agent_n_assets):
-    return MarketTab.AgentChange(agent_name,comm_goal,agent_n_assets)
+def voidfct_AgentData(agent_name,agent_n_assets):
+    return MarketTab.AgentChange(agent_name,agent_n_assets)
+
+# Change in agent data (community goal, importation fee)
+@app.callback(Output('market-menu-agent-impfee-show', 'style'),[
+        Input('market-menu-agent-commgoal', 'value'),
+        Input('market-menu-agent-impfee', 'value')
+        ])
+def voidfct_AgentChangeCommGoal(comm_goal,impfee):
+    return MarketTab.AgentChangeCommGoal(comm_goal,impfee)
 
 # Change in agent partnerships
 @app.callback(Output('market-menu-agent-preferences', 'value'),[Input('market-menu-agent-partners', 'value')],[
@@ -322,7 +329,7 @@ def voidfct_MenuProgress(show):
 def voidfct_MenuProgressUpdate(progress):
     return SimTab.MenuVisual_ProgressUpdate(progress)
 
-# Visual menu - update
+# Visual menu - message
 @app.callback(Output('simulation-menu-launch-message', 'children'),[
         Input('simulation-save-button', 'n_clicks'),
         Input('simulation-launch-button', 'n_clicks')])
@@ -340,6 +347,19 @@ def voidfct_MenuLaunchMessageConfirm(cancel,confirm):
 @app.callback(Output('simulation-menu-refresh', 'children'),[Input('simulation-menu-refresh-trigger', 'n_clicks')])
 def voidfct_MenuRefresh(n_clicks):
     return SimTab.MenuRefresh(n_clicks)
+
+# Fees menu - update
+@app.callback(Output('simulation-menu-fees-comm', 'children'),[Input('simulation-menu-fees-addcomm', 'value')])
+def voidfct_MenuFees_Commisions(add):
+    return SimTab.MenuFees_Commisions(add)
+
+# Fees menu - update
+@app.callback(Output('simulation-menu-fees-comm-ans', 'children'),[
+        Input('simulation-menu-fees-p2p', 'value'),
+        Input('simulation-menu-fees-community', 'value')])
+def voidfct_MenuFees_CommisionsUpdate(p2p,comm):
+    return SimTab.MenuFees_CommisionsUpdate(p2p,comm)
+
 
 #%% Simulation -- Running in progress
 # Simulator -- launch menu
@@ -409,4 +429,9 @@ def voidfct_Exit_Simulator(n_clicks):
 @app.callback(Output('MainApp-container', 'children'),[Input('simulator-exit-trigger', 'n_clicks')])
 def voidfct_Exit_Simulator(n_clicks):
     return MainApp_Show('Simulation')
+
+# Simulator -- exit simulation
+@app.callback(Output('simulator-stop-button-hide', 'children'),[Input('simulator-stop-button', 'n_clicks')])
+def voidfct_Button_Stop(n_clicks):
+    return SimTab.Optimizer.Button_Stop(n_clicks)
 

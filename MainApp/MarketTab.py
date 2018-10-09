@@ -49,7 +49,7 @@ class MarketTab(DashTabs):
                               'costfct':'Quadratic', 'costfct_coeff':[0,0,0],
                               'longitude':0, 'latitude':0, 'bus':0,
                               'p_bounds_up':0, 'p_bounds_low':0, 'q_bounds_up':0, 'q_bounds_low':0}
-        self.community_goal_options = ['Lowest Price','Autonomy','Lowest Importation','Peak Shaving']
+        self.community_goal_options = ['Lowest Price','Lowest Importation']#,'Autonomy','Peak Shaving']
         self.assets_type = ['Appliances','Store','Flats','Stores','Factory','Solar','Wind','Fossil']
         self.assets_type_shortcut = {'App':'Appliances','Fact':'Factory'}
         self.default_preference_threshold = 100
@@ -278,6 +278,7 @@ class MarketTab(DashTabs):
             max_ass = None
             styl_goal = {'display':'none'}
             styl_ass = {'display':'table-row'}
+        styl_impfee = {'display':'none'}
         AllowedPart = self.ListAllowedPartners()
         for x in self.MGraph.vs[self.AgentID]['Partners']:
             for ids in self.MGraph.vs.select(ID=x):
@@ -300,6 +301,14 @@ class MarketTab(DashTabs):
                                                 value=self.MGraph.vs[self.AgentID]['CommGoal'])
                                     ], style={'display':'table-cell'}),
                             ], style=styl_goal),
+                    html.Div([
+                            html.Div(['Importation fee:'], style={'display':'table-cell'}),
+                            html.Div([
+                                    dcc.Input( id='market-menu-agent-impfee', type='number', min=0, step=0.01, value=self.MGraph.vs[self.AgentID]['ImpFee'], style={'width':'99%'})
+                                    ], style={'display':'table-cell'}),
+                            html.Div([], style={'display':'table-cell'}),
+                            html.Div([' $/kWh'], style={'display':'table-cell'}),
+                            ], style=styl_impfee, id='market-menu-agent-impfee-show'),
                     html.Div([
                             html.Div(['Trading partners:'], style={'display':'table-cell'}),
                             html.Div([
@@ -1084,7 +1093,7 @@ class MarketTab(DashTabs):
             self.AgentName = 'Agent' + ' ' + str(self.maxID+1)
             self.MGraph.add_vertex(name=self.AgentName,ID=self.maxID,Type='Agent',
                                         AssetsNum=1,Assets=[self.default_asset],
-                                        Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None)
+                                        Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None,ImpFee=0)
             self.AgentID = self.MGraph.vs.find(ID=self.maxID).index
             self.maxID += 1
         if returnID:
@@ -1102,13 +1111,20 @@ class MarketTab(DashTabs):
         self.MGraph.vs[self.AgentID]['Type'] = agent_type
         return self.Menu_AgentData()
     
-    def AgentChange(self,agent_name,comm_goal,agent_n_assets):
+    def AgentChange(self,agent_name,agent_n_assets):
         self.AgentName = agent_name
         self.MGraph.vs[self.AgentID]['name'] = agent_name
-        self.MGraph.vs[self.AgentID]['CommGoal'] = comm_goal
         self.MGraph.vs[self.AgentID]['AssetsNum'] = agent_n_assets
         self.CreateAsset()
         return self.ShowAssetsMenu()
+    
+    def AgentChangeCommGoal(self,comm_goal,impfee):
+        self.MGraph.vs[self.AgentID]['CommGoal'] = comm_goal
+        self.MGraph.vs[self.AgentID]['ImpFee'] = impfee
+        if comm_goal=='Lowest Importation':
+            return {'display':'table-row'}
+        else:
+            return {'display':'none'}
     
     def AgentPartners(self,agent_partners,agent_preferences):
         self.MGraph.vs[self.AgentID]['Partners'] = agent_partners
@@ -1380,7 +1396,7 @@ class MarketTab(DashTabs):
     def VerifyMarketGraphFormat(self,NewMarket=None):
         output = False
         if NewMarket is not None:
-            self.default_vertex_attributes = ['ID','name','Type','AssetsNum','Assets','Partners','Preferences','Community','CommPref','CommGoal']
+            self.default_vertex_attributes = ['ID','name','Type','AssetsNum','Assets','Partners','Preferences','Community','CommPref','CommGoal','ImpFee']
             if set(NewMarket.vs.attributes())==set(self.default_vertex_attributes) and 'weight' in NewMarket.es.attributes():
                 obj = 0
                 cnt = 0
@@ -1426,9 +1442,10 @@ class MarketTab(DashTabs):
                 new['p_bounds_up'] = Pmax[nas]
                 new['p_bounds_low'] = Pmin[nas]
                 new['id'] = nas+1
+                Ass.append(new)
             NewGraph.add_vertex(name=ag_name,ID=ids[i],Type='Agent',
                                 AssetsNum=len(coeff_a),Assets=Ass,
-                                Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None)
+                                Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None,ImpFee=0)
         
         if connectivity=='PrefFile':
             if pref_ceil is None:
@@ -1453,7 +1470,7 @@ class MarketTab(DashTabs):
                 for c in range(max(info['Community'])):
                     NewGraph.add_vertex(name='Community '+str(c+1),ID=nag+c,Type='Manager',
                                         AssetsNum=0,Assets=[],
-                                        Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None)
+                                        Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None,ImpFee=0)
                 cs = NewGraph.vs.select(Type='Manager')
                 ns = NewGraph.vs.select(Type_ne='Manager')
                 for n in cs:
@@ -1515,7 +1532,7 @@ class MarketTab(DashTabs):
             for c in range(max(info['Community'])):
                 NewGraph.add_vertex(name='Community '+str(c+1),ID=nag+c,Type='Manager',
                                     AssetsNum=0,Assets=[],
-                                    Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None)
+                                    Partners=[],Preferences=[],Community=[],CommPref=[],CommGoal=None,ImpFee=0)
             cs = NewGraph.vs.select(Type='Manager')
             ns = NewGraph.vs.select(Type_ne='Manager')
             for n in cs:

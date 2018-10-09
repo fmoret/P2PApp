@@ -18,6 +18,7 @@ class expando(object):
 class Prosumer:
     def __init__(self,agent=None,partners=None,preferences=None,rho=1):
         self.data = expando()
+        self.Who()
         # Data -- Agent and its assets
         if agent is not None:
             self.data.type = agent['Type']
@@ -73,6 +74,11 @@ class Prosumer:
         self._opti_status(trade)
         trade[self.data.partners] = self.t_old
         return trade
+    
+    def production_consumption(self):
+        prod = abs( np.array([self.variables.p[i].x for i in range(self.data.num_assets) if self.variables.p[i].x>0]).sum() )
+        cons = abs( np.array([self.variables.p[i].x for i in range(self.data.num_assets) if self.variables.p[i].x<0]).sum() )
+        return prod,cons
 
     ###
     #   Model Building
@@ -146,4 +152,17 @@ class Prosumer:
         self.Res_primal = sum( (self.t_new + trade[self.data.partners])*(self.t_new + trade[self.data.partners]) )
         self.Res_dual = sum( (self.t_new-self.t_old)*(self.t_new-self.t_old) )
         self.t_old = np.copy(self.t_new)
+        return
+    
+    def Who(self):
+        #print('Prosumer')
+        self.who = 'Prosumer'
+        return
+
+
+# Subproblem
+class Manager(Prosumer):
+    def Who(self):
+        #print('Manager')
+        self.who = 'Manager'
         return

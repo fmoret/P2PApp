@@ -29,6 +29,13 @@ class DashTabs:
 #        self.Optimizer.simulation_on = True
 #        self.Optimizer.simulation_on_tab = True
         self.n_clicks_tab = 0
+#        self.init_test()
+    
+    def init_test(self):
+        self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
+#        self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
+        self.MGraph.BuildGraphOfMarketGraph(True)
+        return
     
     def ShareWidth(self,menu=None,graph=None):
         if menu is None:

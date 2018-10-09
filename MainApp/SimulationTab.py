@@ -6,6 +6,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 from .DashTabs import DashTabs
+import numpy as np
 
 
 class SimulationTab(DashTabs):
@@ -32,18 +33,74 @@ class SimulationTab(DashTabs):
             menu_data = self.Menu()
             return self.MenuTab(menu_data,graph_data,bottom_data)
     
-    #%% Market tab -- Main  menu   
+    #%% Simulation tab -- Main  menu   
     def Menu(self):
         return html.Div(self.MenuRefresh(), id='simulation-menu-refresh')
     
     def MenuRefresh(self,refresh=None):
-        return [html.Div(self.MenuAlgorithm(), id='simulation-menu-algorithm'),
+        return [html.Div(self.MenuFees(), id='simulation-menu-fees'),
+                html.Div(self.MenuAlgorithm(), id='simulation-menu-algorithm'),
                 html.Div(self.MenuComputation(), id='simulation-menu-computation'),
                 html.Div(self.MenuVisual(), id='simulation-menu-visual'),
                 html.Div(self.MenuLaunch(), id='simulation-menu-launch')]
     
     
-    #%% Market tab -- Algorithm  menu   
+    #%% Simulation tab -- Fees menu
+    def MenuFees(self):
+        return [html.Div([
+                html.H4('General fees', title='In addition to preferences.'),
+                html.Div([
+                    self.defaultTable,
+                    html.Div([
+                            html.Div(['Commission fees:'], style={'display':'table-cell'}),
+                            html.Div([
+                                    dcc.RadioItems( id='simulation-menu-fees-addcomm', labelStyle={'display': 'block'}, 
+                                                   value=self.Optimizer.Add_Commission_Fees,
+                                                 options=[
+                                                    {'label': 'Yes', 'value': 'Yes'},
+                                                    {'label': 'No', 'value': 'No'},
+                                                ])
+                                    ], style={'display':'table-cell','padding-bottom':self.table_padding}),
+                            ], style={'display':'table-row'}),
+                    ], style={'display':'table','width':'100%'}),
+                html.Div(id='simulation-menu-fees-comm'),
+                ])]
+    
+    def MenuFees_Commisions(self,add='No'):
+        if add=='Yes':
+            return [html.Div([
+                        self.defaultTable,
+                        html.Div([
+                                html.Div(['P2P:'], style={'display':'table-cell'}, title='Common to all bilateral trades.'),
+                                html.Div([
+                                        dcc.Input( id='simulation-menu-fees-p2p', type='number', min=0, step=0.01,
+                                                       value=self.Optimizer.Commission_Fees_P2P),
+                                        ], style={'display':'table-cell','padding-bottom':self.table_padding}),
+                                html.Div(['$/kWh'], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        html.Div([
+                                html.Div(['Community:'], style={'display':'table-cell'}, title='Common to all communities.'),
+                                html.Div([
+                                        dcc.Input( id='simulation-menu-fees-community', type='number', min=0, step=0.01,
+                                                       value=self.Optimizer.Commission_Fees_Community),
+                                        ], style={'display':'table-cell','padding-bottom':self.table_padding}),
+                                html.Div(['$/kWh'], style={'display':'table-cell'}),
+                                ], style={'display':'table-row'}),
+                        ], style={'display':'table','width':'100%'}),
+                    html.Div(id='simulation-menu-fees-comm-ans'),
+                    ]
+        else:
+            return []
+    
+    def MenuFees_CommisionsUpdate(self,p2p=None,comm=None):
+        if p2p is not None:
+            self.Optimizer.Commission_Fees_P2P = max(p2p,0)
+        if comm is not None:
+            self.Optimizer.Commission_Fees_Community = max(comm,0)
+        return
+    
+    
+    #%% Simulation tab -- Algorithm  menu   
     def MenuAlgorithm(self):
         return [html.Div([
                 html.H4('Algorithm'),
@@ -73,7 +130,7 @@ class SimulationTab(DashTabs):
                         html.Div(['Maximum number of iterations:'], style={'display':'table-cell'}),
                         html.Div([
                                 dcc.Input( id='simulation-menu-maxit',
-                                             type='number', step=1, min=1,
+                                             type='number', step=250, min=1,
                                              value=self.Optimizer.maximum_iteration)
                                 ], style={'display':'table-cell','padding-bottom':self.table_padding}),
                         html.Div([], id='simulation-menu-parameters-hidden', style={'display':'none'}),
@@ -133,7 +190,7 @@ class SimulationTab(DashTabs):
         return []
     
     
-    #%% Market tab -- Computation  menu   
+    #%% Simulation tab -- Computation  menu   
     def MenuComputation(self):
         return [html.Div([
                 html.H4('Computation'),
@@ -212,7 +269,7 @@ class SimulationTab(DashTabs):
         return []
     
     
-    #%% Market tab -- Visualization  menu   
+    #%% Simulation tab -- Visualization  menu   
     def MenuVisual(self):
         return [html.Div([
                 html.H4('Visualization'),
@@ -255,7 +312,7 @@ class SimulationTab(DashTabs):
         return []
     
     
-    #%% Market tab -- Launch  menu   
+    #%% Simulation tab -- Launch  menu   
     def MenuLaunch(self):
         return [html.Div([
                 html.Div([
