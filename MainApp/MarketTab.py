@@ -51,7 +51,7 @@ class MarketTab(DashTabs):
                               'p_bounds_up':0, 'p_bounds_low':0, 'q_bounds_up':0, 'q_bounds_low':0}
         self.community_goal_options = ['Lowest Price','Lowest Importation']#,'Autonomy','Peak Shaving']
         self.assets_type = ['Appliances','Store','Flats','Stores','Factory','Solar','Wind','Fossil']
-        self.assets_type_shortcut = {'App':'Appliances','Fact':'Factory'}
+        self.assets_type_shortcut = {'App':'Appliances','Fact':'Factory','House':'Appliances'}
         self.default_preference_threshold = 100
     
     def init_DefaultFilename(self):

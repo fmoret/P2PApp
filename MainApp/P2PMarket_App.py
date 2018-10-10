@@ -26,14 +26,24 @@ MarketTab = MarketTab()
 #from loremipsum import get_sentences
 
 def MainApp_Show(tab_id='Market'):
-    return [dcc.Tabs(id="tabs", value=tab_id, style={'display':'block'},
+    return [html.Div([
+                html.Div([
+                        html.Div(['Prosumer Centric Market Simulation'],
+                                 style={'display':'table-cell','width':'70%','font-size':'2em'}),
+                        html.Div([html.A('Go to test case generator', href='/generator', style={'color':'#003366','font-style':'italic'})],
+                                  style={'display':'table-cell','width':'30%','text-align':'right','vertical-align':'top'})
+                        ],style={'display':'table-row'})
+            ],id='main-title',style={'display':'table','width':'100%'}),
+            html.Div([
+                #html.Hr()
+                ],style={'width':'95%','padding-bottom':'1em','margin':'auto'}),
+            dcc.Tabs(id="tabs", value=tab_id, style={'display':'block'},
                      children=[
                              dcc.Tab(label='Market', value='Market'),
                              dcc.Tab(label='Simulation', value='Simulation'),
                              ]
                      ),
             html.Div(id='tab-output'),
-#            html.Div([html.A('Open test case generator', href='/generator', target="_blank")],id='link2generator')
             ]
 
 layout = html.Div(MainApp_Show(), 
