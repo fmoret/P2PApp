@@ -257,7 +257,7 @@ class MarketTab(DashTabs):
                 html.Div(self.Menu_AgentRefresh(), id='market-menu-agent-refresh')
                 ])
     
-    def Menu_AgentRefresh(self):
+    def Menu_AgentRefresh(self,click=None):
         return html.Div([], style={'display':'table','width':'100%'},id='market-menu-agent-data')
     
     def Menu_AgentData(self):
@@ -535,7 +535,7 @@ class MarketTab(DashTabs):
                     ], style={'display':'table','width':'100%'}),
                 html.Div(self.Menu_CommunityRefresh(), id='market-menu-community-refresh')]
     
-    def Menu_CommunityRefresh(self):
+    def Menu_CommunityRefresh(self,click=None):
         AllowedPart = self.ListAllowedPartners()
         return html.Div([self.defaultTable,
                 html.Div([
