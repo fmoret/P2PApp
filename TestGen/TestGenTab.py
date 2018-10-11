@@ -28,20 +28,39 @@ class TestGenTab:
     def __init_defaults__(self):
         # set Tags for callback and generic function generators
         self.Tags = ['Ngen','Same','Coverage','Wind']
-        self.GenericTags = ['Nhouse','Nstore']
+        self.GenericTags = [
+                {'var':'Nhouse', 'solar':True},
+                {'var':'Nstore', 'solar':True},
+                {'var':'Nflats', 'solar':True},
+                {'var':'Nmall', 'solar':True},
+                {'var':'Nfact', 'solar':False},
+                {'var':'Nplant', 'solar':False},
+                {'var':'Nwind', 'solar':False},
+                ]
         self.GenereciText = {
                 'Nhouse':'Number of houses:',
-                'Nstore':'Number of small stores:'
+                'Nstore':'Number of small stores:',
+                'Nflats':'Number of builfings with flats:',
+                'Nmall':'Number of malls:',
+                'Nfact':'Number of factoties:',
+                'Nplant':'Number of thermal power plant:',
+                'Nwind':'Number of wind farms:',
                 }
         self.GenereciTitles = {
                 'Nhouse':'Number of houses with all its appliances (water heater, TV, ...)',
-                'Nstore':'Number of small stores (each using solely one edifice)'
+                'Nstore':'Number of small stores (each using solely one edifice)',
+                'Nflats':'Number of buildings with several appartments within',
+                'Nmall':'Number of buildings with several stores within',
+                'Nfact':'Number of factoties',
+                'Nplant':'Number of thermal power plant (total production capacity share between all thermal plants and wind farms)',
+                'Nwind':'Number of wind farms (total production capacity share between all thermal plants and wind farms)',
                 }
         # default parameters
         self.default = expando()
         self.default.G = expando()
         self.default.S = expando()
         self.default.R = expando()
+        self.default.Max_Solar = expando()
         # variables associated to self.Tags
         self.default.G.Ngen = 1
         self.default.G.Same = True
@@ -51,10 +70,39 @@ class TestGenTab:
         self.default.R.Prod_Coverage = [90,110] # in %
         self.default.R.Prod_Wind_share = [10,20] # in %
         # variables associated to self.GenericTags
+        # for Nhouse
         self.default.S.Nhouse = 15
         self.default.R.Nhouse = [10,20]
-        self.default.S.Nstore = 3
-        self.default.R.Nstore = [2,5]
+        self.default.S.Nhouse_solar = 10 # in %
+        self.default.R.Nhouse_solar = [0,20] # in %
+        self.default.Max_Solar.Nhouse = 100 # in %
+        # for Nstore
+        self.default.S.Nstore = 5
+        self.default.R.Nstore = [2,8]
+        self.default.S.Nstore_solar = 20 # in %
+        self.default.R.Nstore_solar = [0,60] # in %
+        self.default.Max_Solar.Nstore = 100 # in %
+        # for Nflats
+        self.default.S.Nflats = 10
+        self.default.R.Nflats = [10,20]
+        self.default.S.Nflats_solar = 20 # in %
+        self.default.R.Nflats_solar = [0,50] # in %
+        self.default.Max_Solar.Nflats = 100 # in %
+        # for Nmall
+        self.default.S.Nmall = 3
+        self.default.R.Nmall = [0,5]
+        self.default.S.Nmall_solar = 33 # in %
+        self.default.R.Nmall_solar = [0,66] # in %
+        self.default.Max_Solar.Nmall = 100 # in %
+        # for Nfact
+        self.default.S.Nfact = 6
+        self.default.R.Nfact = [3,9]
+        # for Nplant
+        self.default.S.Nplant = 7
+        self.default.R.Nplant = [5,10]
+        # for Nwind
+        self.default.S.Nwind = 4
+        self.default.R.Nwind = [0,8]
         return
     
     def __init_params__(self):
@@ -70,9 +118,12 @@ class TestGenTab:
         self.R.Prod_Coverage = self.default.R.Prod_Coverage
         self.R.Prod_Wind_share = self.default.R.Prod_Wind_share
         # variables associated to self.GenericTags
-        for x in self.GenericTags:
-            setattr(self.S,x, getattr(self.default.S,x) )
-            setattr(self.R,x, getattr(self.default.R,x) )
+        for tag in self.GenericTags:
+            setattr(self.S,tag['var'], getattr(self.default.S,tag['var']) )
+            setattr(self.R,tag['var'], getattr(self.default.R,tag['var']) )
+            if tag['solar']:
+                setattr(self.S,f"{tag['var']}_solar", getattr(self.default.S,f"{tag['var']}_solar") )
+                setattr(self.R,f"{tag['var']}_solar", getattr(self.default.R,f"{tag['var']}_solar") )
 #        self.S.Nhouses = self.default.S.Nhouses
 #        self.R.Nhouses = self.default.R.Nhouses
 #        self.S.Nstores = self.default.S.Nstores
@@ -129,39 +180,46 @@ class TestGenTab:
                             html.Div(['Number of test cases:'], style={'display':'table-cell'}, 
                                      title='Number of test cases to generate'),
                             html.Div([
-                                    dcc.Input(type='number',min=1,step=1,value=self.G.Ngen, id='gen-general-Ngen', style={'width':'50%'})
+                                    dcc.Input(type='number',min=1,step=1,value=self.G.Ngen, id='gen-general-Ngen')
                                     ], style={'display':'table-cell'}),
-                        ], style={'display':'table-row'}),
-                ], style={'display':'table','width':'100%','margin-bottom':'0.5em'}),
-                html.Div(id='gen-general-Ngen-sel'),
-            ], style={'margin-bottom':'1em'})
-    
-    def Ngen(self,Ngen=None):
-        if Ngen is not None:
-            self.G.Ngen = int(Ngen)
-        if self.G.Ngen == 1:
-            self.G.Same = True
-            style_same = {'display':'none'}
-        else:
-            style_same = {'display':'table','width':'100%','margin-bottom':'0.5em'}
-        return html.Div([
-                html.Div([
-                    self.defaultTable,
+                            html.Div(id='gen-general-Ngen-sel',style={'display':'none'}),
+                        ], style={'display':'table-row','padding-bottom':'0.5em'}),
                     html.Div([
                             html.Div(['Use the same composition for all test cases:'], style={'display':'table-cell'}, 
                                      title='Should all test cases be composed of the same elements?'),
-                            html.Div([
-                                    dcc.RadioItems( id='gen-general-Same', labelStyle={'display': 'block'}, 
-                                                   value=self.G.Same,
-                                                 options=[
-                                                    {'label': 'Yes', 'value': True},
-                                                    {'label': 'No', 'value': False},
-                                                ])
-                                    ], style={'display':'table-cell'}),
-                        ], style={'display':'table-row'}),
-                ], style=style_same),
+                            html.Div([self.SameShowRefresh()
+                                    ], style={'display':'table-cell','padding-bottom':'0.5em'},id='gen-general-Same-show'),
+                        ], style=self.SameShowHide(),id='gen-general-Same-row'),
+                ], style={'display':'table','width':'100%'}),
                 html.Div(id='gen-general-Same-sel'),
             ], style={'margin-bottom':'1em'})
+    
+    def SameShowRefresh(self,click=None):
+        if self.G.Ngen == 1:
+            self.G.Same = True
+        return dcc.RadioItems(id='gen-general-Same', labelStyle={'display': 'block'}, 
+                             value=self.G.Same,
+                             options=[
+                                {'label': 'Yes', 'value': True},
+                                {'label': 'No', 'value': False},
+                            ])
+    
+    def SameShowHide(self,click=None):
+        if self.G.Ngen > 1:
+            return {'display':'table-row'}
+        else:
+            return {'display':'none'}
+    
+    def Ngen(self,Ngen=None):
+        if Ngen is not None:
+            if self.G.Ngen!=int(Ngen):
+                self.G.Ngen = int(Ngen)
+                out = [html.Button(children='',type='submit',id='gen-general-Same-hide',n_clicks=1)]
+                if self.G.Ngen == 1 and not self.G.Same:
+                    out.append(
+                            html.Button(children='',type='submit',id='gen-general-Same-refresh',n_clicks=1)
+                            )
+                return out
         
     def Same(self,Same=None):
         if Same is not None:
@@ -250,25 +308,59 @@ class TestGenTab:
         out = []
         if self.G.Same:
             for tag in tags:
-                out.append( html.Div([
-                            html.Div([self.GenereciText[tag]], style={'display':'table-cell'}, title=self.GenereciTitles[tag]),
+                if tag['solar']:
+                    padd = '0em'
+                else:
+                    padd = '.5em'
+                out.extend([ html.Div([
+                            html.Div([self.GenereciText[tag['var']]], style={'display':'table-cell'}, title=self.GenereciTitles[tag['var']]),
                             html.Div([
-                                    dcc.Input(type='number', min=0,step=1, value=getattr(self.S,tag) , id=f'gen-general-{tag}')
-                                    ], style={'display':'table-cell','padding-bottom':'.25em'}),
-                            html.Div(id=f'gen-general-{tag}-sel', style={'display':'none'}),
-                        ], style={'display':'table-row'}) 
-                    )
+                                    dcc.Input(type='number', min=0,step=1, value=getattr(self.S,tag['var']) , id=f'gen-general-{tag["var"]}')
+                                    ], style={'display':'table-cell','padding-bottom':padd}),
+                            html.Div(id=f'gen-general-{tag["var"]}-sel', style={'display':'none'}),
+                        ], style={'display':'table-row'}),
+#                        html.Div(style={'display':'table-row'},id=f'gen-general-{tag["var"]}-show')
+                    ])
+                if tag['solar']:
+                    out.append( html.Div([
+                                html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.5em'}, 
+                                             title='Percentage with PV panels installed on the roof'),
+                                html.Div([
+                                        dcc.Slider(min=0,max=getattr(self.default.Max_Solar,tag['var']), step=1,
+                                                   value=getattr(self.S,f'{tag["var"]}_solar'), id=f'gen-general-{tag["var"]}-solar')
+                                        ], style={'display':'table-cell'}),
+                                html.Div(style={'display':'table-cell'}),
+                                html.Div(id=f'gen-general-{tag["var"]}-solar-sel', style={'display':'table-cell'}),
+                            ], style={'display':'table-row'}) 
+                        )
         else:
             for tag in tags:
-                 out.append( html.Div([
-                            html.Div([self.GenereciText[tag]], style={'display':'table-cell'}, title=self.GenereciTitles[tag]),
+                if tag['solar']:
+                    padd = '0em'
+                else:
+                    padd = '.5em'
+                out.extend([ html.Div([
+                            html.Div([self.GenereciText[tag['var']]], style={'display':'table-cell'}, title=self.GenereciTitles[tag['var']]),
                             html.Div([
-                                    dcc.Input(type='text', value=f'{getattr(self.R,tag)}', id=f'gen-general-{tag}'),
-                                    ], style={'display':'table-cell','padding-bottom':'.25em'}),
+                                    dcc.Input(type='text', value=f'{getattr(self.R,tag["var"])}', id=f'gen-general-{tag["var"]}'),
+                                    ], style={'display':'table-cell','padding-bottom':padd}),
                             html.Div(style={'display':'table-cell'}),
-                            html.Div(id=f'gen-general-{tag}-sel', style={'display':'table-cell'}),
-                        ], style={'display':'table-row'})
-                    )
+                            html.Div(id=f'gen-general-{tag["var"]}-sel', style={'display':'table-cell'}),
+                        ], style={'display':'table-row'}),
+#                        html.Div(style={'display':'table-row'},id=f'gen-general-{tag["var"]}-show')
+                    ])
+                if tag['solar']:
+                    out.append( html.Div([
+                                html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.5em'}, 
+                                             title='Percentage with PV panels installed on the roof'),
+                                html.Div([
+                                        dcc.RangeSlider(min=0,max=getattr(self.default.Max_Solar,tag['var']), step=1,
+                                                   value=getattr(self.R,f'{tag["var"]}_solar'), id=f'gen-general-{tag["var"]}-solar')
+                                        ], style={'display':'table-cell'}),
+                                html.Div(style={'display':'table-cell'}),
+                                html.Div(id=f'gen-general-{tag["var"]}-solar-sel', style={'display':'table-cell'}),
+                            ], style={'display':'table-row'}) 
+                        )
         return out
     
     def GenericFct(self,name):
@@ -295,10 +387,60 @@ class TestGenTab:
                     if len(val)>2:
                         val = [val[0],val[-1]]
                     setattr(self.R, name, val)
-                    return f' {getattr(self.R,name)}'
+                    return [html.Div([f' {getattr(self.R,name)}']),
+                            html.Div([
+                                    html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=0)
+                                    ],style={'display':'none'}),
+                            ]
                 elif isinstance(value,int) or isinstance(value,float):
                     setattr(self.S, name, int(value))
-            return
+                    return [html.Div([f' {getattr(self.S,name)}']),
+                            html.Div([
+                                    html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=0)
+                                    ],style={'display':'none'}),
+                            ]
+        return fct
+    
+#    def GenericFctSolarShow(self,name):
+#        def fct(value):
+#            if self.G.Same:
+#                if getattr(self.S,name)==1:
+#                    st = 100
+#                elif getattr(self.S,name)>1:
+#                    st = int(100/(getattr(self.S,name)-1))
+#                else:
+#                    st=1
+#                return [html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.25em'}, 
+#                                     title='Percentage with PV panels installed on the roof'),
+#                        html.Div([
+#                                dcc.Slider(min=0,max=getattr(self.default.Max_Solar,name), step=st,
+#                                           value=getattr(self.S,f'{name}_solar'), id=f'gen-general-{name}-solar')
+#                                ], style={'display':'table-cell'}),
+#                        html.Div(style={'display':'table-cell'}),
+#                        html.Div(id=f'gen-general-{name}-solar-sel', style={'display':'table-cell'}),
+#                        ]
+#            else:
+#                return [html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.25em'}, 
+#                                     title='Percentage with PV panels installed on the roof'),
+#                        html.Div([
+#                                dcc.RangeSlider(min=0,max=getattr(self.default.Max_Solar,name), step=1,
+#                                           value=getattr(self.R,f'{name}_solar'), id=f'gen-general-{name}-solar')
+#                                ], style={'display':'table-cell'}),
+#                        html.Div(style={'display':'table-cell'}),
+#                        html.Div(id=f'gen-general-{name}-solar-sel', style={'display':'table-cell'}),
+#                        ]
+#        return fct
+    
+    def GenericFctSolar(self,name):
+        def fct(value):
+            if value is not None:
+                if isinstance(value,list):
+                    val = [int(float(i)) for i in value]
+                    setattr(self.R, f"{name}_solar", val)
+                    return f' {getattr(self.R,f"{name}_solar")}%'
+                elif isinstance(value,int):
+                    setattr(self.S, f"{name}_solar", int(float(value)))
+                    return f' {getattr(self.S,f"{name}_solar")}%'
         return fct
     
     

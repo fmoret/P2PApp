@@ -66,13 +66,27 @@ def voidfct_Tabs(tab_id):
         return []
 
 #%% General Menu
+# Nsame -- show
+app.callback(Output('gen-general-Same-show','children'), [Input('gen-general-Same-refresh', 'n_clicks')])(TestGen.SameShowRefresh)
+# Nsame -- refresh
+app.callback(Output('gen-general-Same-row','style'), [Input('gen-general-Same-hide', 'n_clicks')])(TestGen.SameShowHide)
+
+
+
 def generate_callbacks(tags,generic=False):
     if generic:
-        for element in tags:
-            app.callback(Output(f'gen-general-{element}-sel','children'), [Input(f'gen-general-{element}', 'value')])(TestGen.GenericFct(element))
+        for tag in tags:
+            if tag['solar']:
+                app.callback(Output(f'gen-general-{tag["var"]}-solar-sel','children'), [Input(f'gen-general-{tag["var"]}-solar', 'value')
+                        ])(TestGen.GenericFctSolar(tag["var"]))
+#                app.callback(Output(f'gen-general-{tag["var"]}-show','children'), [Input(f'gen-general-{tag["var"]}-click','n_clicks')
+#                        ])(TestGen.GenericFctSolarShow(tag["var"]))
+            app.callback(Output(f'gen-general-{tag["var"]}-sel','children'), [Input(f'gen-general-{tag["var"]}', 'value')
+                    ])(TestGen.GenericFct(tag["var"]))
     else:
-        for element in tags:
-            app.callback(Output(f'gen-general-{element}-sel','children'), [Input(f'gen-general-{element}', 'value')])(getattr(TestGen,element))
+        for tag in tags:
+            app.callback(Output(f'gen-general-{tag}-sel','children'), [Input(f'gen-general-{tag}', 'value')])(getattr(TestGen,tag))
+
 
 generate_callbacks(TestGen.Tags)
 generate_callbacks(TestGen.GenericTags,True)
