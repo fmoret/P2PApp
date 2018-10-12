@@ -369,7 +369,6 @@ class SimulationTab(DashTabs):
                         ], style={'display':'table','width':'100%'}),
                         html.Div([],id='simulation-menu-confirm-message')
                         ]
-                self.Optimizer.simulation_on = True
             else:
                 message = [html.Div([], style={'padding-top':'10px'}), html.Hr() ]
                 message.extend(out)
@@ -378,6 +377,7 @@ class SimulationTab(DashTabs):
     def MenuLaunch_MessageConfirm(self,cancel=None,confirm=None):
         if confirm is not None and confirm!=self.confirm_clicks:
             self.confirm_clicks = confirm
+            self.Optimizer.simulation_on = True
             return self.Simulation_on_Tab()
         elif cancel is not None and cancel!=self.cancel_clicks:
             self.cancel_clicks = cancel
