@@ -66,21 +66,24 @@ def voidfct_Tabs(tab_id):
         return []
 
 #%% General Menu
-# Nsame -- show
-app.callback(Output('gen-general-Same-show','children'), [Input('gen-general-Same-refresh', 'n_clicks')])(TestGen.SameShowRefresh)
-# Nsame -- refresh
-app.callback(Output('gen-general-Same-row','style'), [Input('gen-general-Same-hide', 'n_clicks')])(TestGen.SameShowHide)
-
-
-
 def generate_callbacks(tags,generic=False):
     if generic:
         for tag in tags:
-            if tag['solar']:
-                app.callback(Output(f'gen-general-{tag["var"]}-solar-sel','children'), [Input(f'gen-general-{tag["var"]}-solar', 'value')
-                        ])(TestGen.GenericFctSolar(tag["var"]))
-#                app.callback(Output(f'gen-general-{tag["var"]}-show','children'), [Input(f'gen-general-{tag["var"]}-click','n_clicks')
-#                        ])(TestGen.GenericFctSolarShow(tag["var"]))
+            if tag['controlable']:
+                app.callback(Output(f'gen-params-Price-min-{tag["var"]}-sel','children'), [Input(f'gen-params-Price-min-{tag["var"]}', 'value')
+                        ])(TestGen.GenericFctParams('Price_min',tag["var"]))
+                app.callback(Output(f'gen-params-Price-max-{tag["var"]}-sel','children'), [Input(f'gen-params-Price-max-{tag["var"]}', 'value')
+                        ])(TestGen.GenericFctParams('Price_max',tag["var"]))
+                if tag['type']=='consumption':
+                    app.callback(Output(f'gen-params-Power-min-{tag["var"]}-sel','children'), [Input(f'gen-params-Power-min-{tag["var"]}', 'value')
+                            ])(TestGen.GenericFctParams('Power_min',tag["var"]))
+                    app.callback(Output(f'gen-params-Power-max-{tag["var"]}-sel','children'), [Input(f'gen-params-Power-max-{tag["var"]}', 'value')
+                            ])(TestGen.GenericFctParams('Power_max',tag["var"]))
+                    if tag['solar']:
+                        app.callback(Output(f'gen-params-solar-{tag["var"]}-sel','children'), [Input(f'gen-params-solar-{tag["var"]}', 'value')
+                                ])(TestGen.GenericFctParams('Solar_Installed',tag["var"]))
+                        app.callback(Output(f'gen-general-{tag["var"]}-solar-sel','children'), [Input(f'gen-general-{tag["var"]}-solar', 'value')
+                                ])(TestGen.GenericFctSolar(tag["var"]))
             app.callback(Output(f'gen-general-{tag["var"]}-sel','children'), [Input(f'gen-general-{tag["var"]}', 'value')
                     ])(TestGen.GenericFct(tag["var"]))
     else:
@@ -92,36 +95,17 @@ generate_callbacks(TestGen.Tags)
 generate_callbacks(TestGen.GenericTags,True)
 
 
+# Nsame -- show
+app.callback(Output('gen-general-Same-show','children'), [Input('gen-general-Same-refresh', 'n_clicks')])(TestGen.SameShowRefresh)
+# Nsame -- refresh
+app.callback(Output('gen-general-Same-row','style'), [Input('gen-general-Same-hide', 'n_clicks')])(TestGen.SameShowHide)
+# Params -- refresh
+app.callback(Output('gen-params-refresh','children'), [Input('gen-params-default', 'n_clicks')])(TestGen.ParamsMenuDefault)
+# General -- refresh
+app.callback(Output('gen-general-refresh','children'), [Input('gen-general-default', 'n_clicks')])(TestGen.GeneralMenuDefault)
 
+# Generate -- launch
+app.callback(Output('gen-launch-button-sel','children'), [Input('gen-launch-button', 'n_clicks')])(TestGen.GenerateLaunch)
+# Generate -- trigger
+app.callback(Output('gen-generator-output','children'), [Input('gen-generator-trigger', 'n_clicks')])(TestGen.Generate)
 
-
-
-
-
-## Number of cases
-##app.callback(Output('gen-general-Ngen-sel', 'children'), [Input('gen-general-Ngen', 'value')])(getattr(TestGen,'Ngen'))
-#
-## Composition of test cases identical?
-#@app.callback(Output('gen-general-Same-sel', 'children'), [Input('gen-general-Same', 'value')])
-#def voidfct_GeneralMenu_Same(same):
-#    return TestGen.Same(same)
-#
-## Production coverage
-#@app.callback(Output('gen-general-Coverage-sel', 'children'), [Input('gen-general-Coverage', 'value')])
-#def voidfct_Coverage(coverage):
-#    return TestGen.Coverage(coverage)
-#
-## Wind share
-#@app.callback(Output('gen-general-Wind-sel', 'children'), [Input('gen-general-Wind', 'value')])
-#def voidfct_Wind(wind):
-#    return TestGen.Wind(wind)
-#
-## Number of houses
-#@app.callback(Output('gen-general-Nhouses-sel', 'children'), [Input('gen-general-Nhouses', 'value')])
-#def voidfct_Nhouses(Nhouses):
-#    return TestGen.Nhouses(Nhouses)
-#
-#
-#TestGen_tags = ['Ngen','Same','Coverage','Wind','Nhouses']
-#for element in tags:
-#    app.callback(Output('gen-general-'+element+'-sel','children'), [Input(f'gen-general-'+element, 'value')])(getattr(TestGen,element))
