@@ -25,28 +25,7 @@ TestGen = TestGenTab()
 #import plotly.graph_objs as go
 #from collections import deque
 #from loremipsum import get_sentences
-
-def TestGenApp_Show(tab_id='Generator'):
-    return [html.Div([
-                html.Div([
-                        html.Div(['Test Case Generator'],
-                                 style={'display':'table-cell','width':'70%','font-size':'2em'}),
-                        html.Div([html.A('Back to main app', href='/', style={'color':'#003366','font-style':'italic'})],
-                                  style={'display':'table-cell','width':'30%','text-align':'right','vertical-align':'top'})
-                        ],style={'display':'table-row'}),
-            ],id='gen-title',style={'display':'table','width':'100%'}),
-            html.Div([
-                html.Hr()
-                ],style={'width':'95%','padding-bottom':'1em','margin':'auto'}),
-            dcc.Tabs(id="gen-tabs", value=tab_id, style={'display':'none'},
-                     children=[
-                             dcc.Tab(label='Generator', value='Generator'),
-                             ]
-                     ),
-            html.Div(id='gen-tab-output')
-            ]
-
-layout = html.Div(TestGenApp_Show(), 
+layout = html.Div(TestGen.ShowApp(), 
         id='TestGen-container',
         style={
             'width': '98%',
@@ -58,12 +37,7 @@ layout = html.Div(TestGenApp_Show(),
 
 #%% Callbacks
 #%% General Tab layout
-@app.callback(Output('gen-tab-output', 'children'), [Input('gen-tabs', 'value')])
-def voidfct_Tabs(tab_id):
-    if tab_id=='Generator':
-        return TestGen.ShowTab()
-    else:
-        return []
+app.callback(Output('gen-tab-output', 'children'), [Input('gen-tabs', 'value')])(TestGen.ShowTab)
 
 #%% General Menu
 def generate_callbacks(tags,generic=False):
@@ -79,11 +53,13 @@ def generate_callbacks(tags,generic=False):
                             ])(TestGen.GenericFctParams('Power_min',tag["var"]))
                     app.callback(Output(f'gen-params-Power-max-{tag["var"]}-sel','children'), [Input(f'gen-params-Power-max-{tag["var"]}', 'value')
                             ])(TestGen.GenericFctParams('Power_max',tag["var"]))
-                    if tag['solar']:
-                        app.callback(Output(f'gen-params-solar-{tag["var"]}-sel','children'), [Input(f'gen-params-solar-{tag["var"]}', 'value')
-                                ])(TestGen.GenericFctParams('Solar_Installed',tag["var"]))
-                        app.callback(Output(f'gen-general-{tag["var"]}-solar-sel','children'), [Input(f'gen-general-{tag["var"]}-solar', 'value')
-                                ])(TestGen.GenericFctSolar(tag["var"]))
+                if tag['solar']:
+                    app.callback(Output(f'gen-params-solar-{tag["var"]}-sel','children'), [Input(f'gen-params-solar-{tag["var"]}', 'value')
+                            ])(TestGen.GenericFctParams('Solar_Installed',tag["var"]))
+                    app.callback(Output(f'gen-general-{tag["var"]}-solar-sel','children'), [Input(f'gen-general-{tag["var"]}-solar', 'value')
+                            ])(TestGen.GenericFctSolar(tag["var"]))
+                    app.callback(Output(f'gen-general-{tag["var"]}-click-sel','children'), [Input(f'gen-general-{tag["var"]}-click', 'n_clicks')
+                            ])(TestGen.GenericMenuSolar(tag["var"]))
             app.callback(Output(f'gen-general-{tag["var"]}-sel','children'), [Input(f'gen-general-{tag["var"]}', 'value')
                     ])(TestGen.GenericFct(tag["var"]))
     else:
@@ -92,7 +68,7 @@ def generate_callbacks(tags,generic=False):
 
 
 generate_callbacks(TestGen.Tags)
-generate_callbacks(TestGen.GenericTags,True)
+generate_callbacks(TestGen.ItemTags,True)
 
 
 # Nsame -- show
@@ -108,4 +84,9 @@ app.callback(Output('gen-general-refresh','children'), [Input('gen-general-defau
 app.callback(Output('gen-launch-button-sel','children'), [Input('gen-launch-button', 'n_clicks')])(TestGen.GenerateLaunch)
 # Generate -- trigger
 app.callback(Output('gen-generator-output','children'), [Input('gen-generator-trigger', 'n_clicks')])(TestGen.Generate)
+
+# Generate -- file system
+app.callback(Output('gen-generator-file-system-sel','children'), [Input('gen-generator-file-system', 'value')])(TestGen.FileSystem)
+# Generate -- file name
+app.callback(Output('gen-generator-file-name-sel','children'), [Input('gen-generator-file-name', 'value')])(TestGen.FileName)
 

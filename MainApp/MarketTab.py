@@ -51,7 +51,7 @@ class MarketTab(DashTabs):
                               'p_bounds_up':0, 'p_bounds_low':0, 'q_bounds_up':0, 'q_bounds_low':0}
         self.community_goal_options = ['Lowest Price','Lowest Importation']#,'Autonomy','Peak Shaving']
         self.assets_type = ['Appliances','Store','Flats','Stores','Factory','Solar','Wind','Fossil']
-        self.assets_type_shortcut = {'App':'Appliances','Fact':'Factory','House':'Appliances'}
+        self.assets_type_shortcut = {'App':'Appliances','Fact':'Factory','House':'Appliances','Thermal plant':'Fossil'}
         self.default_preference_threshold = 100
     
     def init_DefaultFilename(self):
@@ -122,7 +122,7 @@ class MarketTab(DashTabs):
             out_opt=[
                         {'label': 'Agent', 'value': 'Agent'},
                         {'label': 'Community', 'value': 'Community'},
-                        {'label': 'Link (soon)', 'value': 'Link'},
+                        {'label': 'Link', 'value': 'Link'},
                         {'label': 'From example', 'value': 'Example'},
                         {'label': 'From File', 'value': 'File'},
                     ]
@@ -830,6 +830,7 @@ class MarketTab(DashTabs):
                                 html.Div([
                                         dcc.Input( id='market-menu-asset-p_bounds_up', value=Asset_dict['p_bounds_up'], type='number', step='1', style={'width':'98%'})
                                         ], style={'display':'table-cell'}),
+                                html.Div([' kW'], style={'display':'table-cell','padding-left':'3%'}),
                                 ], style={'display':'table-row'}),
                         html.Div([
                                 html.Div([], style={'display':'table-cell'}),
@@ -837,6 +838,7 @@ class MarketTab(DashTabs):
                                 html.Div([
                                         dcc.Input( id='market-menu-asset-p_bounds_low', value=Asset_dict['p_bounds_low'], type='number', step='1', style={'width':'98%'})
                                         ], style={'display':'table-cell'}),
+                                html.Div([' kW'], style={'display':'table-cell','padding-left':'3%'}),
                                 ], style={'display':'table-row'}),
                     ], style={'display':'table','width':'100%'}),
                     html.Div([],id='market-menu-asset-void')

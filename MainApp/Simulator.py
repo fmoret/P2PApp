@@ -264,6 +264,7 @@ class Simulator:
         self.Price_avg = 0
         self.simulation_time = 0
         self.opti_progress = [self.ProgressTable]
+        self.Stopped = False
         return
     
     def Opti_LocDec_InitModel(self):
@@ -296,7 +297,7 @@ class Simulator:
                                     html.Div([f'{self.SW:.3g}'], style={'display':'table-cell'}),
                                     html.Div([f'{self.prim:.3g}'], style={'display':'table-cell'}),
                                     html.Div([f'{self.dual:.3g}'], style={'display':'table-cell'}),
-                                    html.Div([f'{self.Price_avg:.2f}'], style={'display':'table-cell'}),
+                                    html.Div([f'{self.Price_avg*100:.2f}'], style={'display':'table-cell'}),
                                     ], style={'display':'table-row'})
                             ])
         if out is None:
@@ -396,10 +397,10 @@ class Simulator:
                     html.Div([f'Simulation converged after {self.iteration} iterations']),
                     html.Div([f'in {self.simulation_time:.1f} seconds.']),
                     html.Div([f'The total social welfare is of {self.SW:.0f} $']),
-                    html.Div([f'The total amount of power exchanged is {tot_trade.sum():.0f} W']),
-                    html.Div([f'The total amount of power produced is {tot_prod.sum():.0f} W']),
-                    html.Div([f'The total amount of power consumed is {tot_cons.sum():.0f} W']),
-                    html.Div([f'with an average trading price of {self.Price_avg:.2f} $/Wh']),
+                    html.Div([f'The total amount of power exchanged is {tot_trade.sum():.0f} kW']),
+                    html.Div([f'The total amount of power produced is {tot_prod.sum():.0f} kW']),
+                    html.Div([f'The total amount of power consumed is {tot_cons.sum():.0f} kW']),
+                    html.Div([f'with an average trading price of {self.Price_avg*100:.2f} c$/kWh']),
                     ])
         else:
             errors.append( html.Div([html.B("Simulation did not converge.")]) )

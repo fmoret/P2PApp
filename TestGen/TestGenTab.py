@@ -13,35 +13,80 @@ Created on Wed Oct 10 11:04:59 2018
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import os
+import numpy as np
+import copy
 
+#%% Tool classes
 class expando(object):
     pass
 
+class dict_cases(dict):
+    def __init__(self,*args,**kwargs):
+        dict.__init__(self,*args,**kwargs)
+        self['Case'] = []
+        self['Agent'] = []
+        self['Type'] = []
+        self['Name'] = []
+        self['Energy'] = []
+        self['Community'] = []
+        self['Pmin'] = []
+        self['Pmax'] = []
+        self['a'] = []
+        self['b'] = []
+        return
+    
+    def extend(self,adds={}):
+        if isinstance(adds,dict):
+            adds = [adds]
+        if isinstance(adds,list):
+            for add in adds:
+                if isinstance(add,dict):
+                    for keys in add:
+                        if keys in self:
+                            if isinstance(add[keys],list):
+                                self[keys].extend(add[keys])
+                            else:
+                                self[keys].append(add[keys])
+                        else:
+                            if isinstance(add[keys],list):
+                                self[keys] = add[keys]
+                            else:
+                                self[keys] = [add[keys]]
+        return
+    append=extend
+
+
+#%% Main class
 class TestGenTab:
     def __init__(self):
         self.ShareWidth()
         self.__init__defaults__()
         self.__init__general__()
         self.__init__params__()
+        self.__init__DefaultFilename__()
+        self.tab_id = 'Agents'#Generate'
         self.titles_style = {'margin-bottom':'0.5em'}
         self.n_clicksG_default = 0
         self.n_clicksP_default = 0
         self.n_clicks_generate = 0
+        self.saved = True
+        self.filesystem = 'common'
         return
     
     def __init__defaults__(self):
         # set Tags for callback and generic function generators
         self.Tags = ['Ngen','Same','Coverage','Wind']
-        self.GenericTags = [
-                {'var':'Nhouse' ,'solar':True  ,'name':'Houses'               ,'type':'consumption' ,'controlable':True },
-                {'var':'Nstore' ,'solar':True  ,'name':'Stores'               ,'type':'consumption' ,'controlable':True },
-                {'var':'Nflats' ,'solar':True  ,'name':'Flats'                ,'type':'consumption' ,'controlable':True },
-                {'var':'Nmall'  ,'solar':True  ,'name':'Malls'                ,'type':'consumption' ,'controlable':True },
-                {'var':'Nfact'  ,'solar':False ,'name':'Factories'            ,'type':'consumption' ,'controlable':True },
-                {'var':'Nplant' ,'solar':False ,'name':'Thermal power plants' ,'type':'production'  ,'controlable':True },
-                {'var':'Nwind'  ,'solar':False ,'name':'Wind farms'           ,'type':'production'  ,'controlable':False},
+        self.ItemTags = [
+                {'var':'Nhouse' ,'solar':True  ,'name':'House'         ,'item':'Houses'         ,'type':'consumption' ,'controlable':True },
+                {'var':'Nstore' ,'solar':True  ,'name':'Store'         ,'item':'Stores'         ,'type':'consumption' ,'controlable':True },
+                {'var':'Nflats' ,'solar':True  ,'name':'Flat'          ,'item':'Stores'         ,'type':'consumption' ,'controlable':True },
+                {'var':'Nmall'  ,'solar':True  ,'name':'Mall'          ,'item':'Malls'          ,'type':'consumption' ,'controlable':True },
+                {'var':'Nfact'  ,'solar':False ,'name':'Factory'       ,'item':'Factories'      ,'type':'consumption' ,'controlable':True },
+                {'var':'Nplant' ,'solar':False ,'name':'Thermal plant' ,'item':'Thermal plants' ,'type':'production'  ,'controlable':True },
+                {'var':'Nwind'  ,'solar':False ,'name':'Wind farm'     ,'item':'Wind farms'     ,'type':'production'  ,'controlable':False},
                 ]
-        self.GenereciText = {
+        self.ItemText = {
                 'Nhouse':'Number of houses:',
                 'Nstore':'Number of small stores:',
                 'Nflats':'Number of builfings with flats:',
@@ -50,7 +95,7 @@ class TestGenTab:
                 'Nplant':'Number of thermal power plant:',
                 'Nwind':'Number of wind farms:',
                 }
-        self.GenereciTitles = {
+        self.ItemTitles = {
                 'Nhouse':'Number of houses with all its appliances (water heater, TV, ...)',
                 'Nstore':'Number of small stores (each using solely one edifice)',
                 'Nflats':'Number of buildings with several appartments within',
@@ -79,7 +124,7 @@ class TestGenTab:
         self.default.S.Prod_Wind_share = 20         # in %
         self.default.R.Prod_Coverage = [90,110]     # in %
         self.default.R.Prod_Wind_share = [10,20]    # in %
-        # variables associated to self.GenericTags
+        # variables associated to self.ItemTags
         # for Nhouse
         self.default.S.Nhouse = 15                      # number (int)
         self.default.R.Nhouse = [10,20]                 # numbers (int)
@@ -110,8 +155,8 @@ class TestGenTab:
         self.default.S.Nflats_solar = 20                # in %
         self.default.R.Nflats_solar = [0,50]            # in %
         self.default.Max_Solar_Penetration.Nflats = 100 # in %
-        self.default.Power_min.Nflats = [] # in kW
-        self.default.Power_max.Nflats = [] # in kW
+        self.default.Power_min.Nflats = [10,20] # in kW
+        self.default.Power_max.Nflats = [25,35] # in kW
         self.default.Price_min.Nflats = [11,13.5]       # in c$/kWh
         self.default.Price_max.Nflats = [14.5,17]       # in c$/kWh
         self.default.Max_Solar_Installed.Nflats = 120   # in %
@@ -122,8 +167,8 @@ class TestGenTab:
         self.default.S.Nmall_solar = 33                 # in %
         self.default.R.Nmall_solar = [0,66]             # in %
         self.default.Max_Solar_Penetration.Nmall = 100  # in %
-        self.default.Power_min.Nmall = [] # in kW
-        self.default.Power_max.Nmall = [] # in kW
+        self.default.Power_min.Nmall = [25,40] # in kW
+        self.default.Power_max.Nmall = [50,70] # in kW
         self.default.Price_min.Nmall = [10,12]          # in c$/kWh
         self.default.Price_max.Nmall = [15,19]          # in c$/kWh
         self.default.Max_Solar_Installed.Nmall = 120    # in %
@@ -162,8 +207,8 @@ class TestGenTab:
         self.S.Prod_Wind_share = self.default.S.Prod_Wind_share
         self.R.Prod_Coverage = self.default.R.Prod_Coverage
         self.R.Prod_Wind_share = self.default.R.Prod_Wind_share
-        # variables associated to self.GenericTags
-        for tag in self.GenericTags:
+        # variables associated to self.ItemTags
+        for tag in self.ItemTags:
             setattr(self.S,tag['var'], getattr(self.default.S,tag['var']) )
             setattr(self.R,tag['var'], getattr(self.default.R,tag['var']) )
             if tag['solar']:
@@ -177,17 +222,28 @@ class TestGenTab:
         self.Price_min = expando()
         self.Price_max = expando()
         self.Solar_Installed = expando()
-        # variables associated to self.GenericTags
-        for tag in self.GenericTags:
+        # variables associated to self.ItemTags
+        for tag in self.ItemTags:
             if tag['controlable']:
                 setattr(self.Price_min,tag['var'], getattr(self.default.Price_min,tag['var']) )
                 setattr(self.Price_max,tag['var'], getattr(self.default.Price_max,tag['var']) )
                 if tag['type']=='consumption':
                     setattr(self.Power_min,tag['var'], getattr(self.default.Power_min,tag['var']) )
                     setattr(self.Power_max,tag['var'], getattr(self.default.Power_max,tag['var']) )
-                    if tag['solar']:
-                        setattr(self.Solar_Installed,tag['var'], getattr(self.default.Solar_Installed,tag['var']) )
+                if tag['solar']:
+                    setattr(self.Solar_Installed,tag['var'], getattr(self.default.Solar_Installed,tag['var']) )
         return
+    
+    def __init__DefaultFilename__(self):
+        n_start = 0
+        #self.dirpath = 'graphs/generated'
+        self.dirpath = 'graphs/saved'
+        for file in os.listdir(self.dirpath):
+            if file.endswith(".csv") and len(file)>10:
+                if file[0:8]=='TestGen_' and file[8:-4].isdigit():
+                    n_start = max(int(file[8:-4])+1, n_start)
+        self.default_full_filename = 'TestGen_' + str(n_start) + '.csv'
+        self.default_filename = 'TestGen'
     
     def ShareWidth(self,menu=None,graph=None):
         if menu is None:
@@ -226,16 +282,53 @@ class TestGenTab:
                     html.Div(graph_data, style={'width':width_graph,'display':'inline-block','vertical-align':'top'}),
                 ], style= {'width': '100%', 'display': 'block'}),
                 html.Div([
-                    html.Hr()
+                    #html.Hr()
                     ],style={'width':'95%','padding-bottom':'0.5em','margin':'auto'}),
                 html.Div(bottom_data, style= {'width': '100%', 'display': 'block'})
             ], id='gen-main-tab')
     
-    def ShowTab(self):
-        menu_data = [self.GeneralMenu()]
-        graph_data = [self.ParamsMenu()]
-        bottom_data = [self.GenerateMenu()]
+    def ShowTab(self,tab_id=None):
+        if tab_id is None:
+            tab_id = self.tab_id
+        if tab_id=='Preferences':
+            self.tab_id = 'Preferences'
+            menu_data = ['Prefs menu']
+            graph_data = ['Prefs graph']
+            bottom_data = []
+        elif tab_id=='Generate':
+            self.tab_id = 'Generate'
+            menu_data = []
+            graph_data = []
+            bottom_data = [self.GenerateMenu()]
+        else:
+            self.tab_id = 'Agents'
+            menu_data = [self.GeneralMenu()]
+            graph_data = [self.ParamsMenu()]
+            bottom_data = []
         return self.MenuTab(menu_data,graph_data,bottom_data)
+    
+    def ShowApp(self,tab_id=None):
+        if tab_id is None:
+            tab_id = self.tab_id
+        return [html.Div([
+                    html.Div([
+                            html.Div(['Test Case Generator'],
+                                     style={'display':'table-cell','width':'70%','font-size':'2em'}),
+                            html.Div([html.A('Back to main app', href='/', style={'color':'#003366','font-style':'italic'})],
+                                      style={'display':'table-cell','width':'30%','text-align':'right','vertical-align':'top'})
+                            ],style={'display':'table-row'}),
+                ],id='gen-title',style={'display':'table','width':'100%'}),
+                html.Div([ #html.Hr() 
+                ],style={'width':'95%','padding-bottom':'1em','margin':'auto'}),
+                dcc.Tabs(id="gen-tabs", value=tab_id, #style={'display':'none'},
+                         children=[
+                                 dcc.Tab(label='Agents', value='Agents'),
+                                 dcc.Tab(label='Preferences', value='Preferences'),
+                                 dcc.Tab(label='Generate', value='Generate'),
+                                 ]
+                         ),
+                html.Div(id='gen-tab-output')
+                ]
     
     
     #%% Menu -- General setup
@@ -386,7 +479,7 @@ class TestGenTab:
     #%% Generic Tags functions
     def GenericMenu(self,tags=None):
         if tags is None:
-            tags = self.GenericTags
+            tags = self.ItemTags
         out = []
         if self.G.Same:
             for tag in tags:
@@ -395,7 +488,7 @@ class TestGenTab:
                 else:
                     padd = '.5em'
                 out.extend([ html.Div([
-                            html.Div([self.GenereciText[tag['var']]], style={'display':'table-cell'}, title=self.GenereciTitles[tag['var']]),
+                            html.Div([self.ItemText[tag['var']]], style={'display':'table-cell'}, title=self.ItemTitles[tag['var']]),
                             html.Div([
                                     dcc.Input(type='number', min=0,step=1, value=getattr(self.S,tag['var']) , id=f'gen-general-{tag["var"]}')
                                     ], style={'display':'table-cell','padding-bottom':padd}),
@@ -407,10 +500,7 @@ class TestGenTab:
                     out.append( html.Div([
                                 html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.5em'}, 
                                              title='Percentage with PV panels installed on the roof'),
-                                html.Div([
-                                        dcc.Slider(min=0,max=getattr(self.default.Max_Solar_Penetration,tag['var']), step=1,
-                                                   value=getattr(self.S,f'{tag["var"]}_solar'), id=f'gen-general-{tag["var"]}-solar')
-                                        ], style={'display':'table-cell'}),
+                                html.Div(id=f'gen-general-{tag["var"]}-click-sel', style={'display':'table-cell'}),
                                 html.Div(style={'display':'table-cell'}),
                                 html.Div(id=f'gen-general-{tag["var"]}-solar-sel', style={'display':'table-cell'}),
                             ], style={'display':'table-row'}) 
@@ -422,7 +512,7 @@ class TestGenTab:
                 else:
                     padd = '.5em'
                 out.extend([ html.Div([
-                            html.Div([self.GenereciText[tag['var']]], style={'display':'table-cell'}, title=self.GenereciTitles[tag['var']]),
+                            html.Div([self.ItemText[tag['var']]], style={'display':'table-cell'}, title=self.ItemTitles[tag['var']]),
                             html.Div([
                                     dcc.Input(type='text', value=f'{getattr(self.R,tag["var"])}', id=f'gen-general-{tag["var"]}'),
                                     ], style={'display':'table-cell','padding-bottom':padd}),
@@ -435,39 +525,50 @@ class TestGenTab:
                     out.append( html.Div([
                                 html.Div(['Part owning solar PV panels:'], style={'display':'table-cell','padding-left':'3%','padding-bottom':'.5em'}, 
                                              title='Percentage with PV panels installed on the roof'),
-                                html.Div([
-                                        dcc.RangeSlider(min=0,max=getattr(self.default.Max_Solar_Penetration,tag['var']), step=1,
-                                                   value=getattr(self.R,f'{tag["var"]}_solar'), id=f'gen-general-{tag["var"]}-solar')
-                                        ], style={'display':'table-cell'}),
+                                html.Div(id=f'gen-general-{tag["var"]}-click-sel', style={'display':'table-cell'}),
                                 html.Div(style={'display':'table-cell'}),
                                 html.Div(id=f'gen-general-{tag["var"]}-solar-sel', style={'display':'table-cell'}),
                             ], style={'display':'table-row'}) 
                         )
         return out
     
+    def GenericMenuSolar(self,name):
+        def fct(val):
+            if self.G.Same:
+                stp = max(round(100/getattr(self.S, name)),1)
+                if getattr(self.S, name)>20:
+                    d = False
+                    if getattr(self.S, name)>50:
+                        stp = 1
+                else:
+                    d = True
+                return dcc.Slider(min=0,max=getattr(self.default.Max_Solar_Penetration,name), step=stp, dots=d,
+                                      value=getattr(self.S,f'{name}_solar'), id=f'gen-general-{name}-solar')
+            else:
+                return dcc.RangeSlider(min=0,max=getattr(self.default.Max_Solar_Penetration,name), step=1,
+                                       value=getattr(self.R,f'{name}_solar'), id=f'gen-general-{name}-solar')
+        return fct
+    
     def GenericFct(self,name):
         def fct(value):
             if value is not None:
                 if isinstance(value,str):
-                    val = self.String2List(value)
+                    val = TestGenTab.String2List(value)
                     setattr(self.R, name, val)
-                    return f' {getattr(self.R,name)}'
-#                    return [html.Div([f' {getattr(self.R,name)}']),
-#                            html.Div([
-#                                    html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=0)
-#                                    ],style={'display':'none'}),
-#                            ]
+#                    return f' {getattr(self.R,name)}'
+                    return html.Div([f' {getattr(self.R,name)}',
+                            html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=1,style={'display':'none'})
+                            ])
                 elif isinstance(value,int) or isinstance(value,float):
                     setattr(self.S, name, int(value))
-                    return f' {getattr(self.S,name)}'
-#                    return [html.Div([f' {getattr(self.S,name)}']),
-#                            html.Div([
-#                                    html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=0)
-#                                    ],style={'display':'none'}),
-#                            ]
+#                    return f' {getattr(self.S,name)}'
+                    return html.Div([f' {getattr(self.S,name)}',
+                            html.Button(children='', id=f'gen-general-{name}-click', type='submit', n_clicks=1,style={'display':'none'})
+                            ])
         return fct
     
-    def String2List(self,value):
+    @staticmethod
+    def String2List(value,decimals=0):
         if value.find('[')>-1:
             value = value[value.find('[')+1:]
         if value.find(']')>-1:
@@ -477,7 +578,7 @@ class TestGenTab:
         val = []
         for i in range(len(value)):
             try:
-                x=int(float(value[i]))
+                x=round(float(value[i]),decimals)
             except ValueError:
                 x=-1
             if x>=0:
@@ -525,7 +626,7 @@ class TestGenTab:
     
     def GenericMenuParams(self,tags=None):
         if tags is None:
-            tags = self.GenericTags
+            tags = self.ItemTags
         out = []
         for tag in tags:
             if tag['controlable']:
@@ -574,21 +675,21 @@ class TestGenTab:
                                 html.Div(id=f'gen-params-Power-max-{tag["var"]}-sel', style={'display':'table-cell'}),
                                 ], style={'display':'table-row'})
                         ])
-                    if tag['solar']:
-                        mess.extend([
+                if tag['solar']:
+                    mess.extend([
+                            html.Div([
+                                html.Div(["Solar capacity:"], style={'display':'table-cell'}, title='in % of maximal consumption'),
                                 html.Div([
-                                    html.Div(["Solar capacity:"], style={'display':'table-cell'}, title='in % of maximal consumption'),
-                                    html.Div([
-                                            dcc.RangeSlider(min=0, step=1, max=getattr(self.default.Max_Solar_Installed,tag['var']), 
-                                                            value=getattr(self.Solar_Installed,tag['var']), id=f'gen-params-solar-{tag["var"]}')
-                                            ], style={'display':'table-cell'}),
-                                    html.Div(style={'display':'table-cell'}),
-                                    html.Div(id=f'gen-params-solar-{tag["var"]}-sel', style={'display':'table-cell'}),
-                                ], style={'display':'table-row'})
-                            ])
+                                        dcc.RangeSlider(min=0, step=1, max=getattr(self.default.Max_Solar_Installed,tag['var']), 
+                                                        value=getattr(self.Solar_Installed,tag['var']), id=f'gen-params-solar-{tag["var"]}')
+                                        ], style={'display':'table-cell'}),
+                                html.Div(style={'display':'table-cell'}),
+                                html.Div(id=f'gen-params-solar-{tag["var"]}-sel', style={'display':'table-cell'}),
+                            ], style={'display':'table-row'})
+                        ])
                             
                 out.extend([
-                            html.Div(html.B(tag['name'],style={'font-style':'italic'})),
+                            html.Div(html.B(tag['item'],style={'font-style':'italic'})),
                             html.Div(mess, style={'display':'table','width':'100%','margin-bottom':'1em'})
                         ])
         return html.Div(out)
@@ -597,7 +698,7 @@ class TestGenTab:
         def fct(value):
             if value is not None:
                 if isinstance(value,str):
-                    val = self.String2List(value)
+                    val = TestGenTab.String2List(value,decimals=2)
                 elif isinstance(value,list):
                     val = [int(i) for i in value]
                 else:
@@ -620,28 +721,287 @@ class TestGenTab:
         return html.Div(self.GenerateRefresh(), id='gen-gen-refresh')
     
     def GenerateRefresh(self):
-        return [
-                html.Div([html.Div([
+        self.__init__DefaultFilename__()
+        if self.saved:
+            self.saved = False
+            self.filename = self.default_filename
+        return [html.Div([html.Div([
+                html.Div([
+                    html.Div(['Test cases file system:'], style={'display':'table-cell','width':'15%'}),
+                    html.Div([ 
+                            dcc.RadioItems(id='gen-generator-file-system', labelStyle={'display': 'block'},
+                                               value=self.filesystem,
+                                               options=[
+                                                       {'label':'All in one file (not compatible with main app)','value':'common'},
+                                                       {'label':'Each in a seperate files','value':'separate'},
+                                                       ])
+                            ], style={'display':'table-cell','width':'75%'}),
+                    html.Div(id='gen-generator-file-system-sel', style={'display':'none'}),
+                    ], style={'display':'table-row'}),
+                html.Div([
+                    html.Div(['File name(s):'], style={'display':'table-cell','width':'15%','padding-top':'1em'}),
+                    html.Div([ 
+                            dcc.Input(id='gen-generator-file-name', type='text', value=self.filename)
+                            ], style={'display':'table-cell','width':'75%'}),
+                    html.Div(id='gen-generator-file-name-sel', style={'display':'none'}),
+                    ], style={'display':'table-row'}),
+                html.Div([
                     html.Div([ 
                             html.Button(children='Generate', id='gen-launch-button', n_clicks=self.n_clicks_generate, style={'width':'60%','height':'2em'}) 
-                            ], style={'display':'table-cell','width':'15%','text-align':'center'}),
+                            ], style={'display':'table-cell','width':'15%','text-align':'center','padding-top':'2em'}),
                     html.Div([ 
                             html.I('Note that this operation may take some time.') 
                             ], style={'display':'table-cell','width':'75%'}),
-                    ], style={'display':'table-row'}),
-                    html.Div(id='gen-launch-button-sel', style={'display':'table-row'})
+                    ], style={'display':'table-row'})
                     ],style={'display':'table','width':'100%','margin-bottom':'1em'}),
-                html.Div(id='gen-generator-output')
-                ]
+                html.Div(id='gen-launch-button-sel')
+                ])]
+    
+    def FileSystem(self,syst=None):
+        if syst is not None:
+            if syst=='separate':
+                self.filesystem = 'separate'
+            else:
+                self.filesystem = 'common'
+        return
+    
+    def FileName(self,name=None):
+        if name is not None:
+            self.filename = name
+        return
     
     def GenerateLaunch(self,click=None):
         if click is not None and click!=self.n_clicks_generate:
-            return html.Div([ html.Button(id='gen-generator-trigger', n_clicks=1) ], style={'display':'none'})
+            return html.Div([
+                            html.Div([ html.Button(id='gen-generator-trigger', n_clicks=1) ], style={'display':'none'}),
+                            html.Div(id='gen-generator-output')
+                        ])
         else:
             return ''
     
     def Generate(self,click=None):
-        return 'Youpi'
+        self.CaseGen()
+        msg = self.Save()
+        return msg
+    
+    
+    #%% Generator -- Cases
+    def CaseGen(self):
+        # Initialize loop
+        if self.filesystem=='separate':
+            self.cases = []
+        else:
+            self.cases = dict_cases()
+        var = {}
+        if self.G.Same:
+            var['Prod_cov'] = self.S.Prod_Coverage
+            var['Wind_cov'] = self.S.Prod_Wind_share
+            for tag in self.ItemTags:
+                var[tag['var']] = getattr(self.S,tag['var'])
+                if tag['solar']:
+                    var[f"{tag['var']}_solar"] = getattr(self.S,f"{tag['var']}_solar")
+        # Start loop
+        for i in range(self.G.Ngen):
+            loc = dict_cases()
+            self.num_assets = 0
+            self.ag_count = 0
+            if not self.G.Same:
+                # generate new composition if different for each case
+                var['Prod_cov'] = np.random.randint( self.R.Prod_Coverage[0], self.R.Prod_Coverage[1])
+                var['Wind_cov'] = np.random.randint( self.R.Prod_Wind_share[0], self.R.Prod_Wind_share[1])
+                for tag in self.ItemTags:
+                    v = getattr(self.R,tag['var'])
+                    var[tag['var']] = np.random.randint(v[0],v[1])
+                    if tag['solar']:
+                        v = getattr(self.R,f"{tag['var']}_solar")
+                        var[f"{tag['var']}_solar"] = np.random.randint(v[0],v[1])
+            # Add consumers
+            cons,P_cons = self.CaseGen_Cons(var)
+            loc.extend(cons)
+            # Add producers
+            prod = self.CaseGen_Prod(var,P_cons)
+            loc.extend(prod)
+            # Set community and case
+            loc['Community'] = [1 for j in range(len(loc['Agent']))]
+            loc['Case'] = [i for j in range(len(loc['Agent']))]
+            # Archive case
+            self.cases.append(loc)
+        return 
+    
+    def CaseGen_Cons(self,var):
+        loc = dict_cases()
+        P_cons = 0
+        for tag in self.ItemTags:
+            if tag['type']=='consumption' and tag['controlable']:
+                # for each item that consumes add utility curve
+                # from c$/kWh to $/kWh
+                Pri_min = [x/100 for x in getattr(self.Price_min,tag['var'])]  
+                Pri_max = [x/100 for x in getattr(self.Price_max,tag['var'])]
+                # from >0 consumption to <0 production
+                Pow_min = [-x for x in getattr(self.Power_max,tag['var'])]
+                Pow_min.sort()
+                Pow_max = [-x for x in getattr(self.Power_min,tag['var'])]
+                Pow_max.sort()
+                a,b,Pmin,Pmax = TestGenTab.UtilityCurvesGen(num = var[tag['var']], 
+                                                            Lmin = Pri_min, Lmax = Pri_max,
+                                                            Pmin = Pow_min, Pmax = Pow_max,
+                                                            decimals=2)
+                
+                name = [f"{tag['name']} {j+1}" for j in range(var[tag['var']])]
+                ag = [j+self.ag_count for j in range(var[tag['var']])]
+                typ = ['Consumer' for j in range(var[tag['var']])]
+                ener = [tag['name'] for j in range(var[tag['var']])]
+                P_cons -= sum(Pmin)
+                # for each item that consumes which has it add PV
+                if tag['solar']:
+                    n_sol = round(var[f"{tag['var']}_solar"]/100*var[tag['var']])
+                    v = getattr(self.Solar_Installed,tag['var'])
+                    for j in range(n_sol):
+                        Psol = round(np.random.randint(v[0],v[1])/100*abs(Pmin[j]),2)
+                        Pmin.insert(n_sol-j,Psol)
+                        Pmax.insert(n_sol-j,Psol)
+                        a.insert(n_sol-j,0)
+                        b.insert(n_sol-j,0)
+                        name.insert(n_sol-j,name[n_sol-j-1])
+                        ag.insert(n_sol-j,ag[n_sol-j-1])
+                        typ.insert(n_sol-j,'Producer')
+                        ener.insert(n_sol-j,'Solar')
+                self.ag_count += var[tag['var']]
+                self.num_assets += len(a)
+                loc.extend({'Agent':ag,'Type':typ,'Name':name,'Energy':ener,'Pmin':Pmin,'Pmax':Pmax,'a':a,'b':b})
+        return loc,P_cons
+    
+    @staticmethod
+    def CaseGen_shares(N,Pin,decimals=0):
+        shares = np.random.rand(N)
+        Pout = np.around(Pin*shares/sum(shares), decimals=decimals)
+        while any(Pout==0):
+            for idx in np.where(Pout==0):
+                shares[idx] = np.random.rand()
+            Pout = np.around(Pin*shares/sum(shares), decimals=decimals)
+        return Pout.tolist()
+    
+    def CaseGen_Prod(self,var,P_cons):
+        loc = dict_cases()
+        Prod = var['Prod_cov']/100 * P_cons
+        # Wind production
+        if var['Nwind']!=0:
+            Pwind = var['Wind_cov']/100 * Prod
+            Pmin = TestGenTab.CaseGen_shares(var['Nwind'],Pwind,decimals=2)
+            name = [f'Wind {j+1}' for j in range(var['Nwind'])] 
+            ag = [j+self.ag_count for j in range(var['Nwind'])] 
+            ener = ['Wind' for j in range(var['Nwind'])]
+            typ = ['Producer' for j in range(var['Nwind'])]
+            a = [0 for j in range(var['Nwind'])]
+            self.ag_count += var['Nwind']
+            self.num_assets += var['Nwind']
+            loc.extend({'Agent':ag,'Type':typ,'Name':name,'Energy':ener,'Pmin':Pmin,'Pmax':Pmin,'a':a,'b':a})
+        else:
+            Pwind = 0
+        # Split production of non-wind
+        Pplant = Prod - Pwind
+        N = sum( [var[tag['var']] for tag in self.ItemTags if tag['type']=='production' and tag['var']!='Nwind'] )
+        Pmax = TestGenTab.CaseGen_shares(N,Pplant,decimals=2)
+        Pmin = [0 for j in range(N)]
+        typ = ['Producer' for j in range(N)]
+        name = [] 
+        ag = [] 
+        ener = []
+        a = []
+        b = []
+        count = 0
+        for tag in self.ItemTags:
+            if tag['type']=='production' and tag['var']!='Nwind':
+                for j in range(var[tag['var']]):
+                    v = getattr(self.Price_min,tag['var'])
+                    Lmin = np.random.randint(v[0],v[1])/100
+                    v = getattr(self.Price_max,tag['var'])
+                    Lmax = np.random.randint(v[0],v[1])/100
+                    a.append(  np.around((Lmax-Lmin)/Pmax[count], decimals=5).tolist() )
+                    b.append( np.around(Lmin, decimals=4).tolist() )
+                    name.append(f"{tag['name']} {j+1}")
+                    ener.append(tag['name'])
+                    ag.append(j+self.ag_count)
+                    count += 1
+                self.ag_count += var[tag['var']]
+                self.num_assets += len(a)
+        loc.extend({'Agent':ag,'Type':typ,'Name':name,'Energy':ener,'Pmin':Pmin,'Pmax':Pmax,'a':a,'b':b})
+        return loc
+    
+    @staticmethod
+    def UtilityCurvesGen(num=0,Lmin=[0,0],Lmax=[0,0],Pmin=[0,0],Pmax=[0,0],decimals=0,out='list'):
+        Pmin = np.around( (Pmin[1]-Pmin[0])*np.random.rand(num) + Pmin[0], decimals=decimals)
+        Pmax = np.around( (Pmax[1]-Pmax[0])*np.random.rand(num) + Pmax[0], decimals=decimals)
+        Lmin = np.around( (Lmin[1]-Lmin[0])*np.random.rand(num) + Lmin[0], decimals=decimals)
+        Lmax = np.around( (Lmax[1]-Lmax[0])*np.random.rand(num) + Lmax[0], decimals=decimals)
+        try:
+            a = (Lmax-Lmin)/(Pmax-Pmin)
+        except ZeroDivisionError:
+            a = np.zeros(num)
+        b = np.around( Lmax - a*Pmax, decimals=decimals+2)
+        a = np.around(a, decimals=decimals+3)
+        Pmin = np.around(Pmin, decimals=decimals)
+        Pmax = np.around(Pmax, decimals=decimals)
+        if out!='np':
+            Pmin = Pmin.tolist()
+            Pmax = Pmax.tolist()
+            a = a.tolist()
+            b = b.tolist()
+        return a,b,Pmin,Pmax
+    
+    
+    #%% Generator -- Preferences
+    
+    
+    
+    
+    #%% Save cases and preferences
+    def Save(self):
+        self.saved = False
+        msg = html.B('An error occured: wrong variable format.')
+        if isinstance(self.cases,list):
+            for i in range(len(self.cases)):
+                fname = self.filename_test(i+1)
+                df = pd.DataFrame(data=self.cases[i], columns=self.cases[i].keys())
+                df.to_csv(f"{self.dirpath}/{fname}", float_format='%g')
+                if i ==0:
+                    fn = fname
+            self.saved = True
+        elif isinstance(self.cases,dict_cases):
+            fname = self.filename_test()
+            df = pd.DataFrame(data=self.cases, columns=self.cases.keys())
+            df.to_csv(f"{self.dirpath}/{fname}", float_format='%g')
+            self.saved = True
+        if self.saved:
+            msg = ''
+            if self.G.Ngen>1:
+                if isinstance(self.cases,list):
+                    msg = html.B(f'Test cases have been generated and saved correctly in ["{fn}"--"{fname}"].')
+                elif isinstance(self.cases,dict_cases):
+                    msg = html.B(f'Test cases have been generated and saved correctly in "{fname}".')
+            if msg=='':
+                msg = html.B(f'Test case has been generated and saved correctly in "{fname}".')
+        return msg
+    
+    def filename_test(self,start=0):
+        fn = copy.deepcopy(self.filename)
+        if os.path.isfile(f'{self.dirpath}/{fn}.csv'):
+            idx =  fn.rfind('_')
+            if idx>-1:
+                if fn[idx+1:].isdigit():
+                    start = int(fn[idx+1:])
+                fn = fn[:idx]
+            for file in os.listdir(self.dirpath):
+                if file.endswith(".csv") and len(file)>len(fn)+5:
+                    idx =  file.rfind('_')
+                    if idx>-1 and file[idx+1:-4].isdigit():
+                        start = max(int(file[idx+1:-4])+1, start)
+        if start!=0:
+            fn = f'{fn}_{start}.csv'
+        else:
+            fn = f'{fn}.csv'
+        return fn
+    
     
     
     

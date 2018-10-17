@@ -98,14 +98,14 @@ class MGraph(Graph):
     
     def BuildGraphOfMarketGraph(self,first=False):
         if self.BuildLayout(first):
-            trace1=go.Scatter(
+            trace1=go.Scattergl(
                            x=self.Xe,
                            y=self.Ye,
                            mode='lines',
                            line=dict(color=self.lines.color, width=self.lines.default_size),
                            hoverinfo='none'
                            )
-            trace2=go.Scatter(
+            trace2=go.Scattergl(
                            x=self.Xn,
                            y=self.Yn,
                            mode='markers',
@@ -194,7 +194,7 @@ class MGraph(Graph):
     def UpdateGraphEdges(self,update=False,trades=None):
         if update:
             traces = self.BuildEdges(trades)
-            traces.append(go.Scatter(
+            traces.append(go.Scattergl(
                            x=self.Xn,
                            y=self.Yn,
                            mode='markers',
