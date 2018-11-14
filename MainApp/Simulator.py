@@ -408,10 +408,10 @@ class Simulator:
                     html.Div([f'The total amount of power consumed is {tot_cons.sum():.0f} kW']),
                     html.Div([f'with an average energy/trading price of {self.Price_avg*100:.2f} c$/kWh']),
                     ])
-            trades = pd.DataFrame(self.Trades, index=range(self.nag), columns=range(self.nag))
-            prices = pd.DataFrame(self.Prices, index=range(self.nag), columns=range(self.nag))
-            trades.to_excel('trades.xlsx')
-            prices.to_excel('prices.xlsx')
+            #trades = pd.DataFrame(self.Trades, index=range(self.nag), columns=range(self.nag))
+            #prices = pd.DataFrame(self.Prices, index=range(self.nag), columns=range(self.nag))
+            #trades.to_excel('trades.xlsx')
+            #prices.to_excel('prices.xlsx')
         else:
             errors.append( html.Div([html.B("Simulation did not converge.")]) )
             if self.simulation_message==-1:
