@@ -80,7 +80,7 @@ class TestGenTab:
         self.ItemTags = [
                 {'var':'Nhouse' ,'solar':True  ,'name':'House'         ,'item':'Houses'         ,'type':'consumption' ,'controlable':True },
                 {'var':'Nstore' ,'solar':True  ,'name':'Store'         ,'item':'Stores'         ,'type':'consumption' ,'controlable':True },
-                {'var':'Nflats' ,'solar':True  ,'name':'Flat'          ,'item':'Stores'         ,'type':'consumption' ,'controlable':True },
+                {'var':'Nflats' ,'solar':True  ,'name':'Flat'          ,'item':'Flats'         ,'type':'consumption' ,'controlable':True },
                 {'var':'Nmall'  ,'solar':True  ,'name':'Mall'          ,'item':'Malls'          ,'type':'consumption' ,'controlable':True },
                 {'var':'Nfact'  ,'solar':False ,'name':'Factory'       ,'item':'Factories'      ,'type':'consumption' ,'controlable':True },
                 {'var':'Nplant' ,'solar':False ,'name':'Thermal plant' ,'item':'Thermal plants' ,'type':'production'  ,'controlable':True },
