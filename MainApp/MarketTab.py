@@ -16,6 +16,7 @@ import copy
 class MarketTab(DashTabs):
     def __init__(self, *args, **kwds):
         DashTabs.__init__(self, *args, **kwds)
+        #self.MGraph = MGraph.Load('graphs/examples/Connected_community_model.pyp2p', format='picklez')
         self.init_DefaultMarketOptions()
         self.init_DefaultFilename()
         self.current_filename = self.default_filename

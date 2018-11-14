@@ -12,7 +12,7 @@ import dash_html_components as html
 #import plotly.graph_objs as go
 #from igraph import *
 #import os
-#import pandas as pd
+import pandas as pd
 import numpy as np
 import copy
 from .MGraph import MGraph
@@ -34,8 +34,8 @@ class Simulator:
         self.full_progress = []
         # Default optimization parameters
         self.Add_Commission_Fees = 'Yes'
-        self.Commission_Fees_P2P = 0.01 # in $/kWh
-        self.Commission_Fees_Community = 0 # in $/kWh
+        self.Commission_Fees_P2P = 1 # in c$/kWh
+        self.Commission_Fees_Community = 0 # in c$/kWh
         self.algorithm = 'Decentralized'
         self.target = 'CPU'
         self.location = 'local'
@@ -43,7 +43,7 @@ class Simulator:
         self.account_token = ''
         self.Registered_Token()
         self.maximum_iteration = 5000
-        self.penaltyfactor = 1
+        self.penaltyfactor = 0.01
         self.residual_primal = 1e-4
         self.residual_dual = 1e-4
         self.communications = 'Synchronous'
@@ -56,8 +56,7 @@ class Simulator:
     
     def init_test(self):
         if self.simulation_on and self.simulation_on_tab:
-            self.MGraph = MGraph.Load('graphs/examples/PCM_multi_Community.pyp2p', format='picklez')
-#            self.MGraph = MGraph.Load('graphs/examples/PCM_single_P2P.pyp2p', format='picklez')
+            self.MGraph = MGraph.Load('graphs/examples/Connected_community_model.pyp2p', format='picklez')
             self.MGraph.BuildGraphOfMarketGraph(True)
             self.SGraph = copy.deepcopy(self.MGraph)
         return
@@ -268,16 +267,22 @@ class Simulator:
         return
     
     def Opti_LocDec_InitModel(self):
+        self.Communities = {}
+        for x in self.MGraph.vs.select(Type='Manager'):
+            self.Communities[x.index] = []
         part = np.zeros(self.Trades.shape)
         pref = np.zeros(self.Trades.shape)
         for es in self.MGraph.es:
             part[es.source][es.target] = 1
             if self.MGraph.vs[es.target]['ID'] in self.MGraph.vs[es.source]['Partners']:
-                pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_P2P,0)
+                pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_P2P/100,0)
                 if self.MGraph.vs[es.source]['Type']=='Manager' and self.MGraph.vs[es.source]['CommGoal']=='Lowest Importation':
                     pref[es.source][es.target] += max(self.MGraph.vs[self.AgentID]['ImpFee'],0)
             elif self.MGraph.vs[es.target]['ID'] in self.MGraph.vs[es.source]['Community']:
-                pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_Community,0)
+                if self.MGraph.vs[es.source]['Type']=='Manager':
+                    self.Communities[es.source].append(es.target)
+                else:
+                    pref[es.source][es.target] = es['weight'] + max(self.Commission_Fees_Community/100,0)
             else:
                 pref[es.source][es.target] = es['weight']
         for x in self.MGraph.vs:
@@ -286,6 +291,7 @@ class Simulator:
             else:
                 self.players[x.index] = Prosumer(agent=x, partners=part[x.index], preferences=pref[x.index], rho=self.penaltyfactor)
         self.part = part
+        self.pref = pref
         return
     
     def Opti_LocDec_State(self,out=None):
@@ -400,8 +406,12 @@ class Simulator:
                     html.Div([f'The total amount of power exchanged is {tot_trade.sum():.0f} kW']),
                     html.Div([f'The total amount of power produced is {tot_prod.sum():.0f} kW']),
                     html.Div([f'The total amount of power consumed is {tot_cons.sum():.0f} kW']),
-                    html.Div([f'with an average trading price of {self.Price_avg*100:.2f} c$/kWh']),
+                    html.Div([f'with an average energy/trading price of {self.Price_avg*100:.2f} c$/kWh']),
                     ])
+            trades = pd.DataFrame(self.Trades, index=range(self.nag), columns=range(self.nag))
+            prices = pd.DataFrame(self.Prices, index=range(self.nag), columns=range(self.nag))
+            trades.to_excel('trades.xlsx')
+            prices.to_excel('prices.xlsx')
         else:
             errors.append( html.Div([html.B("Simulation did not converge.")]) )
             if self.simulation_message==-1:
@@ -442,7 +452,7 @@ class Simulator:
                                             type='submit', n_clicks=self.n_clicks_results_save)
                                 ], style={'display':'table-cell','width':'33%','margin':'auto'}),
                         html.Div([
-                                html.Button(children='Create a report', id = 'results-option-report-button', 
+                                html.Button(children='Create report', id = 'results-option-report-button', 
                                             type='submit', n_clicks=self.n_clicks_results_report)
                                 ], style={'display':'table-cell','width':'33%','margin':'auto'}),
                         html.Div([
@@ -461,7 +471,61 @@ class Simulator:
         elif n_report is not None and n_report!=self.n_clicks_results_report:
             self.n_clicks_results_report = n_report
             self.results_report = True
-            return 'Report (soon)'
+            message = []
+            
+            Perceived = np.zeros([self.nag,self.nag])
+            for i in range(self.nag):
+                for j in range(self.players[i].data.num_partners):
+                    m = self.players[i].data.partners[j]
+                    if self.Trades[i][m]<0:
+                        Perceived[i][m] = self.Prices[i][m] + self.players[i].data.pref[j]
+                    elif self.Trades[i][m]>0:
+                        Perceived[i][m] = self.Prices[i][m] - self.players[i].data.pref[j]
+            Selling_avg = Perceived[self.Trades<0].mean()
+            Buying_avg = Perceived[self.Trades>0].mean()
+            message.extend([
+                    html.Br(),
+                    html.Div(html.B(['Overall market:'])),
+                    html.Div([f'Average selling and buying prices are respectively {Selling_avg*100:.2f} c$/kWh and {Buying_avg*100:.2f} c$/kWh']),
+                    html.Br(),
+                    html.Div(html.B(['Communities market:'])),
+                    ])
+            
+            if len(self.Communities)==0:
+                message.append(html.Div(['There are no communities.']))
+            else:
+                message_comm = [
+                                html.Div([
+                                        html.Div([], style={'display':'table-cell','width':'20%'}),
+                                        html.Div(['Balance of trade'], style={'display':'table-cell','width':'20%'}),
+                                        #html.Div(['Self sufficient'], style={'display':'table-cell','width':'20%'}),
+                                        html.Div(['Interior price'], style={'display':'table-cell','width':'20%'}),
+                                        #html.Div(['Import/export price'], style={'display':'table-cell','width':'20%'}),
+                                    ], style={'display':'table-row'})
+                                ]
+                for Manager,Members in self.Communities.items():
+                    Comm_balance = sum(self.Trades[Manager][Members])
+                    #if Comm_balance < 0:
+                    #    Comm_prod = sum(self.Trades[Manager][Members][ self.Trades[Manager][Members]>0 ])
+                    #    Comm_cons = abs(sum(self.Trades[Manager][Members][ self.Trades[Manager][Members]<0 ]))
+                    #    Comm_self = Comm_prod/Comm_cons * 100
+                    #else:
+                    #    Comm_self = 100
+                    Price_int = self.Prices[Manager][Members].mean()
+                    #out = [i for i in range(self.nag) if i not in Members]
+                    #Price_ext = self.Prices[Manager][out][self.Prices[Manager][out]!=0].mean()
+                    message_comm.append(
+                                html.Div([
+                                        html.Div([ self.MGraph.vs[Manager]['name'] ], style={'display':'table-cell'}),
+                                        html.Div([f'{Comm_balance:.0f} kW'], style={'display':'table-cell'}),
+                                        #html.Div([f'{Comm_self:.0f}%'], style={'display':'table-cell'}),
+                                        html.Div([f'{Price_int*100:.02f} c$/kWh'], style={'display':'table-cell'}),
+                                        #html.Div([f'{Price_ext*100:.02f} c$/kWh'], style={'display':'table-cell'}),
+                                    ], style={'display':'table-row'})
+                                )
+                message.append( html.Div(message_comm, style={'display':'table','width':'100%'}) )
+            
+            return message
         elif n_new is not None and n_new!=self.n_clicks_results_new:
             self.n_clicks_results_new = n_new
             if not self.results_report or not self.results_saved:

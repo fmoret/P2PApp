@@ -73,18 +73,18 @@ class SimulationTab(DashTabs):
                         html.Div([
                                 html.Div(['P2P:'], style={'display':'table-cell'}, title='Common to all bilateral trades.'),
                                 html.Div([
-                                        dcc.Input( id='simulation-menu-fees-p2p', type='number', min=0, step=0.01,
+                                        dcc.Input( id='simulation-menu-fees-p2p', type='number', min=0, step=0.1,
                                                        value=self.Optimizer.Commission_Fees_P2P),
                                         ], style={'display':'table-cell','padding-bottom':self.table_padding}),
-                                html.Div(['$/kWh'], style={'display':'table-cell'}),
+                                html.Div(['c$/kWh'], style={'display':'table-cell'}),
                                 ], style={'display':'table-row'}),
                         html.Div([
                                 html.Div(['Community:'], style={'display':'table-cell'}, title='Common to all communities.'),
                                 html.Div([
-                                        dcc.Input( id='simulation-menu-fees-community', type='number', min=0, step=0.01,
+                                        dcc.Input( id='simulation-menu-fees-community', type='number', min=0, step=0.1,
                                                        value=self.Optimizer.Commission_Fees_Community),
                                         ], style={'display':'table-cell','padding-bottom':self.table_padding}),
-                                html.Div(['$/kWh'], style={'display':'table-cell'}),
+                                html.Div(['c$/kWh'], style={'display':'table-cell'}),
                                 ], style={'display':'table-row'}),
                         ], style={'display':'table','width':'100%'}),
                     html.Div(id='simulation-menu-fees-comm-ans'),

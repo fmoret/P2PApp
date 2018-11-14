@@ -24,14 +24,15 @@ class MGraph(Graph):
         Graph.__init__(self, *args, **kwds)
         
         self.lines = expando()
-        self.lines.default_size = 1
+        self.lines.default_size = 2
         self.lines.max_size = 8
         self.lines.min_size = .1 
         self.trade_threshold = 1 # in % of biggest trade
-        self.lines.color = 'rgb(150,150,150)'
+        self.lines.color = 'rgb(100,100,100)'
+        self.lines.opacity = 0.5
         
         self.markers = expando()
-        self.markers.default_size = 9
+        self.markers.default_size = 12
         self.markers.default_line_size = 0
         self.markers.colorscale = 'Jet' #'Viridis'
         self.markers.color = 'rgb(204,153,0)'
@@ -103,7 +104,8 @@ class MGraph(Graph):
                            y=self.Ye,
                            mode='lines',
                            line=dict(color=self.lines.color, width=self.lines.default_size),
-                           hoverinfo='none'
+                           hoverinfo='none',
+                           opacity=self.lines.opacity
                            )
             trace2=go.Scattergl(
                            x=self.Xn,
@@ -135,7 +137,7 @@ class MGraph(Graph):
                     #scene=dict(xaxis=dict(axis),yaxis=dict(axis)),
                     xaxis=dict(
                         autorange=True,
-                        showgrid=True,
+                        showgrid=False,
                         zeroline=False,
                         showline=False,
                         ticks='',
@@ -143,7 +145,7 @@ class MGraph(Graph):
                     ),
                     yaxis=dict(
                         autorange=True,
-                        showgrid=True,
+                        showgrid=False,
                         zeroline=False,
                         showline=False,
                         ticks='',

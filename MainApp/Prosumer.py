@@ -53,7 +53,7 @@ class Prosumer:
             self.data.pref = np.zeros([0])
         
         # Data -- Penalty factor
-        self.data.rho = rho#*self.data.num_partners
+        self.data.rho = rho
         
         # Data -- Progress
         self.SW = 0
@@ -120,9 +120,9 @@ class Prosumer:
     #   Model Updating
     ###    
     def _update_objective(self):
-        augm_lag = (-sum(self.y*( self.variables.t - self.t_average ) ) + 
+        augm_lag = (-sum(self.y*( self.variables.t - self.t_average )) + 
                     self.data.rho/2*sum( ( self.variables.t - self.t_average )
-                                        *( self.variables.t - self.t_average ) )
+                                            *( self.variables.t - self.t_average ))
                    )
         self.model.setObjective(self.obj_assets + augm_lag)
         self.model.update()
@@ -134,12 +134,6 @@ class Prosumer:
     def _iter_update(self, trade):
         self.t_average = (self.t_old - trade[self.data.partners])/2
         self.y -= self.data.rho*(self.t_old - self.t_average)
-#        if self.data.CM:
-#            self.y = self.y0.mean()
-#        else:
-#            self.y = self.y0
-#        for i in range(self.data.num_partners):
-#            self.y[i] +=  self.rho*(self.t_old[i] + self.t_others[i])/2
         return
         
     ###
