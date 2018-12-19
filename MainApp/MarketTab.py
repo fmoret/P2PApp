@@ -205,7 +205,7 @@ class MarketTab(DashTabs):
             elif example_value=='File':
                 return self.Menu_AddFile()
             elif example_value=='New':
-                return self.Menu_AddFile()
+                return self.Menu_AddFile('New')
             else:
                 return 
         else:
@@ -885,6 +885,10 @@ class MarketTab(DashTabs):
     
     #%% Market tab -- Agent menu
     def Menu_AddFile(self,filetype='Example',actiontype='Add'):
+        if filetype=='New':
+            disp_style = 'none'
+        else:
+            disp_style = 'table-row'
         return html.Div([
                     html.Div([self.defaultTable,
                         html.Div([
@@ -893,7 +897,7 @@ class MarketTab(DashTabs):
                                     dcc.Dropdown( id='market-menu-addfile-extension', clearable=False, value='pyp2p',
                                                  options=[{'label':'pyp2p','value':'pyp2p'},{'label':'csv','value':'csv'}])
                                     ], style={'display':'table-cell'}),
-                            ], style={'display':'table-row'}),
+                            ], style={'display':disp_style}),
                     ], style={'display':'table','width':'100%'}),
                     html.Div([], id='market-menu-addfile-select'),
                 ], id='market-menu-addfile-refresh')
@@ -910,8 +914,13 @@ class MarketTab(DashTabs):
         if actiontype=='Open' and filetype=='New':
             button_chil = 'New'
             entry = ''
-            #drop = html.Div([dcc.Dropdown( id='market-menu-addfile-filename', value='****NEW****')], style={'display':'none'})
+            cells_style = 'none'
+            drop = [ dcc.Dropdown( id='market-menu-addfile-filename', clearable=False, value='****NEW****') ]
         else:
+            drop = [ dcc.Dropdown( id='market-menu-addfile-filename', clearable=False,
+						options=[{'label':str(file[0:-(len(extension)+1)]),'value':str(file)} for file in os.listdir(self.current_dirpath) if file.endswith('.'+extension)], 
+						value=self.current_filename ) ]
+            cells_style = 'table'
             if actiontype=='Open':
                 button_chil = 'Open'
             else:
@@ -924,11 +933,7 @@ class MarketTab(DashTabs):
         cells = [self.defaultTable,
                     html.Div([
                         html.Div([entry], style={'display':'table-cell'}),
-                        html.Div([
-                            dcc.Dropdown( id='market-menu-addfile-filename', clearable=False,
-                                options=[{'label':str(file[0:-(len(extension)+1)]),'value':str(file)} for file in os.listdir(self.current_dirpath) if file.endswith('.'+extension)], 
-                                value=self.current_filename )
-                                ], style={'display':'table-cell'}),
+                        html.Div(drop, style={'display':'table-cell'}),
                         html.Div([
                                 dcc.Input(id='market-menu-addfile-type', value=actiontype, style={'display':'none'})
                                 ], style={'display':'table-cell'}),
@@ -958,7 +963,7 @@ class MarketTab(DashTabs):
                         ], style={'display':'none'})
                     ])
         return html.Div([
-                html.Div(cells, style={'display':'table','width':'100%'}),
+                html.Div(cells, style={'display':cells_style,'width':'100%'}),
                 html.Div([], id='market-menu-addfile-prefs'),
                 html.Div([self.defaultTable, 
                         html.Div([
@@ -1003,7 +1008,7 @@ class MarketTab(DashTabs):
             
             message = ''
             if actiontype=='Open' and filename=='****NEW****':
-                self.MGraph = Graph(directed=True)
+                self.MGraph = MGraph(directed=True)
                 self.maxID = 0
             elif actiontype=='Open':
                 if extension=='csv':
